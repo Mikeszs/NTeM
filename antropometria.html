@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriSocial | Avaliação Antropométrica</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="d-flex" id="wrapper">
+        
+        <aside id="sidebar-wrapper" class="bg-white shadow-sm">
+            <div class="sidebar-heading text-center py-4 border-bottom">
+                <i class="fa-solid fa-leaf fs-3 me-2 logo-icon"></i>
+                <span class="fs-4 fw-bold logo-text">NutriSocial</span>
+            </div>
+            
+            <div class="list-group list-group-flush my-3">
+                <a href="index.html" class="list-group-item list-group-item-action">
+                    <i class="fas fa-chart-line me-3"></i>Dashboard
+                </a>
+                <a href="cadastro.html" class="list-group-item list-group-item-action">
+                    <i class="fas fa-user-plus me-3"></i>Cadastro & Anamnese
+                </a>
+                <a href="antropometria.html" class="list-group-item list-group-item-action active">
+                    <i class="fas fa-weight me-3"></i>Antropometria
+                </a>
+                <a href="dieta.html" class="list-group-item list-group-item-action">
+                    <i class="fas fa-apple-alt me-3"></i>Plano Alimentar
+                </a>
+            </div>
+        </aside>
+
+        <main id="page-content-wrapper">
+            
+            <nav class="navbar navbar-expand-lg navbar-light bg-transparent py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-bars fs-4 me-3" id="menu-toggle" role="button" aria-label="Alternar Menu"></i>
+                    <h2 class="fs-3 m-0 fw-bold title-text">Avaliação Antropométrica</h2>
+                </div>
+            </nav>
+
+            <section class="container-fluid px-4 py-3">
+                <div class="row g-4">
+                    
+                    <div class="col-12 col-lg-7">
+                        <div class="card card-custom border-0 p-4 h-100">
+                            <h4 class="fs-5 fw-bold mb-4 text-dark"><i class="fas fa-ruler-combined me-2 text-success"></i>Medidas Atuais</h4>
+                            
+                            <form id="formCalculadora">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="sexoCalc" class="form-label fw-semibold">Sexo Biológico</label>
+                                        <select id="sexoCalc" class="form-select calc-input">
+                                            <option value="F" selected>Feminino</option>
+                                            <option value="M">Masculino</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="idadeCalc" class="form-label fw-semibold">Idade (anos)</label>
+                                        <input type="number" class="form-control calc-input" id="idadeCalc" min="1" placeholder="Ex: 25">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="pesoCalc" class="form-label fw-semibold">Peso (kg)</label>
+                                        <input type="number" step="0.1" class="form-control calc-input" id="pesoCalc" placeholder="Ex: 70.5">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="alturaCalc" class="form-label fw-semibold">Altura (cm)</label>
+                                        <input type="number" class="form-control calc-input" id="alturaCalc" placeholder="Ex: 165">
+                                    </div>
+                                </div>
+                                
+                                <hr class="my-4 text-muted">
+                                
+                                <h5 class="fs-6 fw-bold mb-3 text-dark">Circunferências (Opcional)</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label text-muted">Cintura (cm)</label>
+                                        <input type="number" step="0.1" class="form-control">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-muted">Quadril (cm)</label>
+                                        <input type="number" step="0.1" class="form-control">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-muted">Abdômen (cm)</label>
+                                        <input type="number" step="0.1" class="form-control">
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4 text-end">
+                                    <button type="button" class="btn btn-success px-4 rounded-pill shadow-sm" style="background-color: var(--mint-green); border: none;">
+                                        <i class="fas fa-save me-2"></i>Salvar Medidas no Prontuário
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-lg-5">
+                        <div class="card card-custom border-0 p-4 h-100" style="background-color: var(--dark-green); color: white;">
+                            <h4 class="fs-5 fw-bold mb-4"><i class="fas fa-calculator me-2"></i>Resultados Automáticos</h4>
+                            
+                            <div class="p-3 mb-3 rounded" style="background-color: rgba(255, 255, 255, 0.1);">
+                                <p class="mb-1 text-light">Índice de Massa Corporal (IMC)</p>
+                                <div class="d-flex align-items-end justify-content-between">
+                                    <h2 class="display-5 fw-bold mb-0" id="resultadoIMC">0.0</h2>
+                                    <span class="badge bg-light text-dark fs-6 mb-2" id="classificacaoIMC">Aguardando dados</span>
+                                </div>
+                            </div>
+
+                            <div class="p-3 mb-3 rounded" style="background-color: rgba(255, 255, 255, 0.1);">
+                                <p class="mb-1 text-light">Taxa Metabólica Basal (TMB)</p>
+                                <div class="d-flex align-items-end justify-content-between">
+                                    <h2 class="display-5 fw-bold mb-0" id="resultadoTMB">0</h2>
+                                    <span class="fs-6 mb-2 text-light">kcal/dia</span>
+                                </div>
+                                <small class="text-light" style="opacity: 0.7;">Fórmula de Harris-Benedict</small>
+                            </div>
+                            
+                            <div class="mt-auto pt-3">
+                                <p class="small text-light mb-0" style="opacity: 0.8;">
+                                    <i class="fas fa-info-circle me-1"></i> Os cálculos são atualizados automaticamente conforme você digita as medidas ao lado.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Lógica do Menu Lateral Responsivo
+            const el = document.getElementById("wrapper");
+            const toggleButton = document.getElementById("menu-toggle");
+            toggleButton.addEventListener("click", () => el.classList.toggle("toggled"));
+
+            // Elementos de Entrada
+            const inputs = document.querySelectorAll('.calc-input');
+            const inputSexo = document.getElementById('sexoCalc');
+            const inputIdade = document.getElementById('idadeCalc');
+            const inputPeso = document.getElementById('pesoCalc');
+            const inputAltura = document.getElementById('alturaCalc'); // Em centímetros
+
+            // Elementos de Saída
+            const displayIMC = document.getElementById('resultadoIMC');
+            const displayClassificacaoIMC = document.getElementById('classificacaoIMC');
+            const displayTMB = document.getElementById('resultadoTMB');
+
+            // Função para classificar o IMC
+            function obterClassificacaoIMC(imc) {
+                if (imc < 18.5) return { texto: 'Abaixo do Peso', cor: 'text-warning' };
+                if (imc >= 18.5 && imc <= 24.9) return { texto: 'Peso Normal', cor: 'text-success' };
+                if (imc >= 25.0 && imc <= 29.9) return { texto: 'Sobrepeso', cor: 'text-warning' };
+                if (imc >= 30.0 && imc <= 34.9) return { texto: 'Obesidade Grau I', cor: 'text-danger' };
+                if (imc >= 35.0 && imc <= 39.9) return { texto: 'Obesidade Grau II', cor: 'text-danger' };
+                return { texto: 'Obesidade Grau III', cor: 'text-danger' };
+            }
+
+            // Função Principal de Cálculo
+            function calcularMetricas() {
+                const peso = parseFloat(inputPeso.value);
+                const alturaCm = parseFloat(inputAltura.value);
+                const idade = parseInt(inputIdade.value);
+                const sexo = inputSexo.value;
+
+                // Verifica se os campos básicos de peso e altura estão preenchidos para o IMC
+                if (!isNaN(peso) && !isNaN(alturaCm) && alturaCm > 0) {
+                    const alturaMetros = alturaCm / 100;
+                    const imc = peso / (alturaMetros * alturaMetros);
+                    
+                    displayIMC.textContent = imc.toFixed(1);
+                    
+                    const classificacao = obterClassificacaoIMC(imc);
+                    displayClassificacaoIMC.textContent = classificacao.texto;
+                    displayClassificacaoIMC.className = `badge bg-light fs-6 mb-2 ${classificacao.cor}`;
+                } else {
+                    displayIMC.textContent = '0.0';
+                    displayClassificacaoIMC.textContent = 'Aguardando dados';
+                    displayClassificacaoIMC.className = 'badge bg-light text-dark fs-6 mb-2';
+                }
+
+                // Verifica se todos os campos estão preenchidos para a TMB
+                if (!isNaN(peso) && !isNaN(alturaCm) && !isNaN(idade) && alturaCm > 0 && idade > 0) {
+                    let tmb = 0;
+                    if (sexo === 'M') {
+                        tmb = 66.5 + (13.75 * peso) + (5.003 * alturaCm) - (6.75 * idade);
+                    } else {
+                        tmb = 655.1 + (9.563 * peso) + (1.85 * alturaCm) - (4.676 * idade);
+                    }
+                    displayTMB.textContent = Math.round(tmb);
+                } else {
+                    displayTMB.textContent = '0';
+                }
+            }
+
+            // Adiciona o evento 'input' a todos os campos para calcular em tempo real
+            inputs.forEach(input => {
+                input.addEventListener('input', calcularMetricas);
+            });
+        });
+    </script>
+</body>
+</html>
