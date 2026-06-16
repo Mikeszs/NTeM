@@ -132,34 +132,64 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
-    <script>
-        // Lógica do Menu Lateral Responsivo
-        document.addEventListener("DOMContentLoaded", function() {
-            const el = document.getElementById("wrapper");
-            const toggleButton = document.getElementById("menu-toggle");
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                // Lógica do Menu Lateral
+                const el = document.getElementById("wrapper");
+                const toggleButton = document.getElementById("menu-toggle");
+                toggleButton.addEventListener("click", function () {
+                    el.classList.toggle("toggled");
+                });
 
-            toggleButton.addEventListener("click", function () {
-                el.classList.toggle("toggled");
-            });
-
-            // Lógica de Submissão do Formulário
-            const form = document.getElementById("formPaciente");
-            
-            form.addEventListener("submit", function(event) {
-                // Impede que a página recarregue ao clicar em "Salvar"
-                event.preventDefault();
-
-                // Coleta o nome digitado para dar um feedback personalizado
-                const nomePaciente = document.getElementById("nome").value;
-
-                // Em um projeto real com Back-end (Python/Java), aqui faríamos um fetch() para a nossa API.
-                // Por enquanto, mostramos um alerta de sucesso do navegador.
-                alert(`Sucesso! O prontuário de ${nomePaciente} foi salvo na base de dados e já está pronto para avaliação antropométrica.`);
+                // Conexão com a API FastAPI
+                const form = document.getElementById("formPaciente");
                 
-                // Limpa o formulário após salvar
-                form.reset();
+                form.addEventListener("submit", async function(event) {
+                    event.preventDefault(); // Impede a página de piscar/recarregar
+
+                    // 1. Coleta os dados digitados nos inputs da tela
+                    const dadosPaciente = {
+                        nome: document.getElementById("nome").value,
+                        objetivo: document.getElementById("objetivo").value || "Não informado",
+                        email: document.getElementById("email").value,
+                        telefone: document.getElementById("telefone").value
+                    };
+
+                    // Muda o botão para mostrar que está carregando
+                    const btnSalvar = document.querySelector('button[type="submit"]');
+                    const textoOriginal = btnSalvar.innerHTML;
+                    btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Salvando...';
+                    btnSalvar.disabled = true;
+
+                    try {
+                        // 2. Dispara o JSON para o servidor Python
+                        const resposta = await fetch("http://127.0.0.1:8000/pacientes/", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify(dadosPaciente)
+                        });
+
+                        // 3. Lê a resposta do servidor
+                        if (resposta.ok) {
+                            const retorno = await resposta.json();
+                            // Mostra a mensagem de sucesso que veio direto do Python
+                            alert(`✅ ${retorno.mensagem}\nID gerado no Banco: ${retorno.dados.id}`);
+                            form.reset(); // Limpa a tela
+                        } else {
+                            alert("❌ Ocorreu um erro ao salvar o paciente. Verifique os dados.");
+                        }
+                    } catch (erro) {
+                        console.error("Erro na comunicação com a API:", erro);
+                        alert("⚠️ Erro de conexão! Verifique se o servidor FastAPI (Uvicorn) está rodando no terminal.");
+                    } finally {
+                        // Restaura o botão
+                        btnSalvar.innerHTML = textoOriginal;
+                        btnSalvar.disabled = false;
+                    }
+                });
             });
-        });
-    </script>
+        </script>
 </body>
 </html>

@@ -1,16 +1,13 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# 1. Configuração do SQLite
 SQLALCHEMY_DATABASE_URL = "sqlite:///./nutrisocial.db"
 
-# O 'check_same_thread' é necessário apenas para o SQLite funcionar bem com o FastAPI
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
-# 2. Criando as nossas Tabelas (Modelos)
 class Paciente(Base):
     __tablename__ = "pacientes"
     
@@ -19,6 +16,15 @@ class Paciente(Base):
     email = Column(String)
     telefone = Column(String)
     objetivo = Column(String)
+    
+    # Novos campos antropométricos integrados ao cadastro
+    sexo = Column(String, default="F")
+    idade = Column(Integer, default=0)
+    peso = Column(Float, default=0.0)
+    altura = Column(Float, default=0.0)
+    cintura = Column(Float, default=0.0)
+    quadril = Column(Float, default=0.0)
+    abdomen = Column(Float, default=0.0)
 
 class AlimentoTACO(Base):
     __tablename__ = "alimentos_taco"
@@ -29,3 +35,23 @@ class AlimentoTACO(Base):
     carb = Column(Float)
     prot = Column(Float)
     gord = Column(Float)
+    fibra = Column(Float, default=0.0) # NOVA COLUNA
+    sodio = Column(Float, default=0.0) # NOVA COLUNA
+
+# --- NOVAS TABELAS PARA A DIETA ---
+
+class Refeicao(Base):
+    __tablename__ = "refeicoes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    paciente_id = Column(Integer, ForeignKey("pacientes.id"), index=True)
+    nome = Column(String, nullable=False)
+    horario = Column(String, nullable=False)
+
+class ItemRefeicao(Base):
+    __tablename__ = "itens_refeicao"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    refeicao_id = Column(Integer, ForeignKey("refeicoes.id"), index=True)
+    alimento_id = Column(Integer, ForeignKey("alimentos_taco.id"))
+    quantidade = Column(Float, nullable=False)
