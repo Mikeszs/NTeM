@@ -1,0 +1,134 @@
+/* Variáveis de Cor (Tema Saúde) */
+:root {
+    --mint-green: #20c997;       /* Cor principal de destaque */
+    --mint-light: #e0f8f1;       /* Fundo de ícones e hovers */
+    --dark-green: #0f5132;       /* Textos de destaque e logo */
+    --light-gray: #f4f7f6;       /* Fundo geral da aplicação */
+    --white: #ffffff;
+    --text-muted: #6c757d;
+}
+
+body {
+    background-color: var(--light-gray);
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: #333;
+    overflow-x: hidden;
+}
+
+/* ============================
+   SIDEBAR (Menu Lateral)
+   ============================ */
+#wrapper {
+    transition: all 0.3s ease;
+}
+
+#sidebar-wrapper {
+    min-height: 100vh;
+    width: 250px;
+    margin-left: -250px;
+    transition: margin 0.3s ease;
+    z-index: 1000;
+}
+
+/* Comportamento Toggle (Abrir/Fechar) */
+#wrapper.toggled #sidebar-wrapper {
+    margin-left: 0;
+}
+
+.logo-icon {
+    color: var(--mint-green);
+}
+
+.logo-text {
+    color: var(--dark-green);
+}
+
+.title-text {
+    color: var(--dark-green);
+}
+
+/* Itens do Menu */
+.list-group-item {
+    border: none;
+    padding: 1rem 1.5rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    background-color: transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+.list-group-item:hover {
+    background-color: var(--mint-light);
+    color: var(--dark-green);
+}
+
+.list-group-item.active {
+    background-color: var(--mint-light);
+    color: var(--dark-green);
+    border-right: 4px solid var(--mint-green);
+    font-weight: 600;
+}
+
+/* ============================
+   CONTEÚDO PRINCIPAL
+   ============================ */
+#page-content-wrapper {
+    width: 100%;
+    transition: width 0.3s ease;
+}
+
+#menu-toggle {
+    cursor: pointer;
+    color: var(--dark-green);
+    transition: color 0.2s;
+}
+
+#menu-toggle:hover {
+    color: var(--mint-green);
+}
+
+/* ============================
+   CARDS E COMPONENTES
+   ============================ */
+.card-custom {
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-custom:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.06);
+}
+
+/* Caixas de Ícones nos Dashboards */
+.icon-box {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    background-color: var(--mint-light);
+    color: var(--mint-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ============================
+   MEDIA QUERIES (Responsividade)
+   ============================ */
+@media (min-width: 768px) {
+    /* No Desktop, a barra já começa aberta */
+    #sidebar-wrapper {
+        margin-left: 0;
+    }
+    
+    #page-content-wrapper {
+        min-width: 0;
+        width: 100%;
+    }
+    
+    /* E o toggle esconde a barra */
+    #wrapper.toggled #sidebar-wrapper {
+        margin-left: -250px;
+    }
+}

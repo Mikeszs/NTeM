@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriSocial | Dashboard</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="d-flex" id="wrapper">
+        
+                <aside id="sidebar-wrapper" class="bg-white shadow-sm d-flex flex-column" style="min-height: 100vh;">
+            <div class="sidebar-heading text-center py-4 border-bottom">
+                <i class="fa-solid fa-leaf fs-3 me-2 logo-icon"></i>
+                <span class="fs-4 fw-bold logo-text">NutriSocial</span>
+            </div>
+            
+            <div class="list-group list-group-flush my-3 flex-grow-1">
+                <a href="index.html" class="list-group-item list-group-item-action"><i class="fas fa-chart-line me-3"></i>Dashboard</a>
+                <a href="cadastro.html" class="list-group-item list-group-item-action"><i class="fas fa-user-plus me-3"></i>Cadastro & Anamnese</a>
+                <a href="antropometria.html" class="list-group-item list-group-item-action"><i class="fas fa-weight me-3"></i>Antropometria</a>
+                <a href="dieta.html" class="list-group-item list-group-item-action"><i class="fas fa-apple-alt me-3"></i>Plano Alimentar</a>
+            </div>
+
+            <div class="list-group list-group-flush mb-4 mt-auto">
+                <a href="#" id="btnSair" class="list-group-item list-group-item-action text-danger fw-bold">
+                    <i class="fas fa-sign-out-alt me-3"></i>Sair do Sistema
+                </a>
+            </div>
+        </aside>
+
+        <main id="page-content-wrapper">
+            
+            <nav class="navbar navbar-expand-lg navbar-light bg-transparent py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-bars fs-4 me-3" id="menu-toggle" role="button" aria-label="Alternar Menu"></i>
+                    <h2 class="fs-3 m-0 fw-bold title-text">Visão Geral</h2>
+                </div>
+                
+                <div class="ms-auto d-flex align-items-center">
+                    <span class="me-3 fw-semibold text-muted d-none d-md-block">Área do Aluno</span>
+                    <i class="fas fa-user-circle fs-2 text-secondary"></i>
+                </div>
+            </nav>
+
+            <section class="container-fluid px-4 py-3">
+                <div class="row g-4">
+                    <div class="col-12 col-md-4">
+                        <div class="card card-custom p-3 border-0">
+                            <div class="card-body d-flex justify-content-between align-items-center">
+                                <div>
+                                    <p class="text-muted mb-1 fw-semibold">Pacientes Ativos</p>
+                                    <h3 class="fs-1 fw-bold mb-0">24</h3>
+                                </div>
+                                <div class="icon-box">
+                                    <i class="fas fa-users fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="card card-custom p-3 border-0">
+                            <div class="card-body d-flex justify-content-between align-items-center">
+                                <div>
+                                    <p class="text-muted mb-1 fw-semibold">Consultas da Semana</p>
+                                    <h3 class="fs-1 fw-bold mb-0">08</h3>
+                                </div>
+                                <div class="icon-box">
+                                    <i class="fas fa-calendar-check fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="card card-custom p-3 border-0">
+                            <div class="card-body d-flex justify-content-between align-items-center">
+                                <div>
+                                    <p class="text-muted mb-1 fw-semibold">Dietas Entregues</p>
+                                    <h3 class="fs-1 fw-bold mb-0">15</h3>
+                                </div>
+                                <div class="icon-box">
+                                    <i class="fas fa-file-pdf fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card card-custom border-0 p-4">
+                            <h4 class="fs-5 fw-bold mb-3">Próximos Atendimentos</h4>
+                            <p class="text-muted">Nenhum paciente agendado para o período da tarde.</p>
+                            </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+                    // ==========================================
+            // GUARDA DE ROTA (Proteção da Página)
+            // ==========================================
+            const tokenAuth = localStorage.getItem('token_nutrisocial');
+            const roleAuth = localStorage.getItem('role_nutrisocial');
+
+            // Se não tiver token ou não for profissional, expulsa para o login
+            if (!tokenAuth || roleAuth !== 'profissional') {
+                window.location.href = "login.html";
+            }
+            // ==========================================
+        document.addEventListener("DOMContentLoaded", function() {
+            const el = document.getElementById("wrapper");
+            const toggleButton = document.getElementById("menu-toggle");
+
+            toggleButton.addEventListener("click", function () {
+                el.classList.toggle("toggled");
+            });
+        });
+
+                // ==========================================
+        // FUNÇÃO DE LOGOUT
+        // ==========================================
+        document.getElementById('btnSair').addEventListener('click', function(e) {
+            e.preventDefault();
+            if(confirm("Deseja realmente sair do sistema?")) {
+                // Destrói as chaves do cofre do navegador
+                localStorage.removeItem('token_nutrisocial');
+                localStorage.removeItem('role_nutrisocial');
+                localStorage.removeItem('nome_nutrisocial');
+                
+                // Redireciona para o login
+                window.location.href = "login.html";
+            }
+        });
+    </script>
+</body>
+</html>

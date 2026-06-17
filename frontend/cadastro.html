@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriSocial | Cadastro e Anamnese</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="d-flex" id="wrapper">
+        
+        <aside id="sidebar-wrapper" class="bg-white shadow-sm d-flex flex-column" style="min-height: 100vh;">
+            <div class="sidebar-heading text-center py-4 border-bottom">
+                <i class="fa-solid fa-leaf fs-3 me-2 logo-icon"></i>
+                <span class="fs-4 fw-bold logo-text">NutriSocial</span>
+            </div>
+            
+            <div class="list-group list-group-flush my-3 flex-grow-1">
+                <a href="index.html" class="list-group-item list-group-item-action"><i class="fas fa-chart-line me-3"></i>Dashboard</a>
+                <a href="cadastro.html" class="list-group-item list-group-item-action"><i class="fas fa-user-plus me-3"></i>Cadastro & Anamnese</a>
+                <a href="antropometria.html" class="list-group-item list-group-item-action"><i class="fas fa-weight me-3"></i>Antropometria</a>
+                <a href="dieta.html" class="list-group-item list-group-item-action"><i class="fas fa-apple-alt me-3"></i>Plano Alimentar</a>
+            </div>
+
+            <div class="list-group list-group-flush mb-4 mt-auto">
+                <a href="#" id="btnSair" class="list-group-item list-group-item-action text-danger fw-bold">
+                    <i class="fas fa-sign-out-alt me-3"></i>Sair do Sistema
+                </a>
+            </div>
+        </aside>
+
+        <main id="page-content-wrapper">
+            
+            <nav class="navbar navbar-expand-lg navbar-light bg-transparent py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-bars fs-4 me-3" id="menu-toggle" role="button" aria-label="Alternar Menu"></i>
+                    <h2 class="fs-3 m-0 fw-bold title-text">Novo Paciente</h2>
+                </div>
+            </nav>
+
+            <section class="container-fluid px-4 py-3">
+                <form id="formPaciente">
+                    
+                    <div class="card card-custom border-0 p-4 mb-4">
+                        <h4 class="fs-5 fw-bold mb-4 text-dark"><i class="fas fa-id-card me-2 text-success"></i>Dados Pessoais</h4>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="nome" class="form-label fw-semibold">Nome Completo *</label>
+                                <input type="text" class="form-control" id="nome" required placeholder="Ex: Maria da Silva">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="nascimento" class="form-label fw-semibold">Data de Nascimento</label>
+                                <input type="date" class="form-control" id="nascimento">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="sexo" class="form-label fw-semibold">Sexo Biológico</label>
+                                <select id="sexo" class="form-select">
+                                    <option selected disabled>Selecione...</option>
+                                    <option value="F">Feminino</option>
+                                    <option value="M">Masculino</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label fw-semibold">E-mail</label>
+                                <input type="email" class="form-control" id="email" placeholder="paciente@email.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="telefone" class="form-label fw-semibold">Telefone / WhatsApp</label>
+                                <input type="tel" class="form-control" id="telefone" placeholder="(00) 00000-0000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card card-custom border-0 p-4 mb-4">
+                        <h4 class="fs-5 fw-bold mb-4 text-dark"><i class="fas fa-notes-medical me-2 text-success"></i>Histórico Clínico (Anamnese)</h4>
+                        
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="objetivo" class="form-label fw-semibold">Objetivo Principal do Paciente</label>
+                                <input type="text" class="form-control" id="objetivo" placeholder="Ex: Emagrecimento, Hipertrofia, Reeducação Alimentar">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="alergias" class="form-label fw-semibold">Alergias e Intolerâncias</label>
+                                <textarea class="form-control" id="alergias" rows="2" placeholder="Ex: Intolerância à lactose, alergia a amendoim..."></textarea>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="historico_familiar" class="form-label fw-semibold">Histórico de Doenças na Família</label>
+                                <textarea class="form-control" id="historico_familiar" rows="2" placeholder="Ex: Diabetes materno, hipertensão..."></textarea>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="intestino" class="form-label fw-semibold">Funcionamento Intestinal</label>
+                                <select id="intestino" class="form-select">
+                                    <option selected disabled>Selecione o padrão...</option>
+                                    <option value="regular">Regular (1 a 2x ao dia)</option>
+                                    <option value="preso">Constipado / Preso</option>
+                                    <option value="solto">Diarréico / Solto</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="sono" class="form-label fw-semibold">Qualidade do Sono</label>
+                                <select id="sono" class="form-select">
+                                    <option selected disabled>Selecione o padrão...</option>
+                                    <option value="bom">Bom (Contínuo e reparador)</option>
+                                    <option value="regular">Regular (Acorda algumas vezes)</option>
+                                    <option value="ruim">Ruim (Insônia, acorda cansado)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mb-5">
+                        <button type="submit" class="btn btn-success btn-lg px-5 shadow-sm rounded-pill" style="background-color: var(--mint-green); border: none;">
+                            <i class="fas fa-save me-2"></i> Salvar Prontuário
+                        </button>
+                    </div>
+
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+        <script>
+                            // ==========================================
+                // GUARDA DE ROTA (Proteção da Página)
+                // ==========================================
+                const tokenAuth = localStorage.getItem('token_nutrisocial');
+                const roleAuth = localStorage.getItem('role_nutrisocial');
+
+                // Se não tiver token ou não for profissional, expulsa para o login
+                if (!tokenAuth || roleAuth !== 'profissional') {
+                    window.location.href = "login.html";
+                }
+                // ==========================================
+            document.addEventListener("DOMContentLoaded", function() {
+                // Lógica do Menu Lateral
+                const el = document.getElementById("wrapper");
+                const toggleButton = document.getElementById("menu-toggle");
+                toggleButton.addEventListener("click", function () {
+                    el.classList.toggle("toggled");
+                });
+
+                // Conexão com a API FastAPI
+                const form = document.getElementById("formPaciente");
+                
+                form.addEventListener("submit", async function(event) {
+                    event.preventDefault(); // Impede a página de piscar/recarregar
+
+                    // 1. Coleta os dados digitados nos inputs da tela
+                    const dadosPaciente = {
+                        nome: document.getElementById("nome").value,
+                        objetivo: document.getElementById("objetivo").value || "Não informado",
+                        email: document.getElementById("email").value,
+                        telefone: document.getElementById("telefone").value
+                    };
+
+                    // Muda o botão para mostrar que está carregando
+                    const btnSalvar = document.querySelector('button[type="submit"]');
+                    const textoOriginal = btnSalvar.innerHTML;
+                    btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Salvando...';
+                    btnSalvar.disabled = true;
+
+                    try {
+                        // 2. Dispara o JSON para o servidor Python
+                        const resposta = await fetch("http://127.0.0.1:8000/pacientes/", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify(dadosPaciente)
+                        });
+
+                        // 3. Lê a resposta do servidor
+                        if (resposta.ok) {
+                            const retorno = await resposta.json();
+                            // Mostra a mensagem de sucesso que veio direto do Python
+                            alert(`✅ ${retorno.mensagem}\nID gerado no Banco: ${retorno.dados.id}`);
+                            form.reset(); // Limpa a tela
+                        } else {
+                            alert("❌ Ocorreu um erro ao salvar o paciente. Verifique os dados.");
+                        }
+                    } catch (erro) {
+                        console.error("Erro na comunicação com a API:", erro);
+                        alert("⚠️ Erro de conexão! Verifique se o servidor FastAPI (Uvicorn) está rodando no terminal.");
+                    } finally {
+                        // Restaura o botão
+                        btnSalvar.innerHTML = textoOriginal;
+                        btnSalvar.disabled = false;
+                    }
+                });
+            });
+
+                        // ==========================================
+            // FUNÇÃO DE LOGOUT
+            // ==========================================
+            document.getElementById('btnSair').addEventListener('click', function(e) {
+                e.preventDefault();
+                if(confirm("Deseja realmente sair do sistema?")) {
+                    // Destrói as chaves do cofre do navegador
+                    localStorage.removeItem('token_nutrisocial');
+                    localStorage.removeItem('role_nutrisocial');
+                    localStorage.removeItem('nome_nutrisocial');
+                    
+                    // Redireciona para o login
+                    window.location.href = "login.html";
+                }
+            });
+        </script>
+</body>
+</html>
