@@ -198,7 +198,7 @@
             // CARREGA LISTA NO MODAL
             async function carregarPacientes() {
                 try {
-                    const res = await fetch("http://127.0.0.1:8000/pacientes/");
+                    const res = await fetch("https://ntandm.onrender.com/pacientes/");
                     const pacientes = await res.json();
                     selectModal.innerHTML = '<option value="" selected disabled>Escolha o paciente...</option>';
                     pacientes.forEach(p => {
@@ -210,7 +210,7 @@
             // CARREGA DADOS DO PACIENTE SELECIONADO NOS INPUTS
             async function selecionarPaciente(id) {
                 try {
-                    const res = await fetch(`http://127.0.0.1:8000/pacientes/${id}`);
+                    const res = await fetch(`https://ntandm.onrender.com/pacientes/${id}`);
                     pacienteAtual = await res.json();
 
                     document.getElementById('nomePacienteAtivo').textContent = pacienteAtual.nome;
@@ -293,7 +293,7 @@
                 };
 
                 try {
-                    const res = await fetch(`http://127.0.0.1:8000/pacientes/${pacienteAtual.id}`, {
+                    const res = await fetch(`https://ntandm.onrender.com/pacientes/${pacienteAtual.id}`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload)

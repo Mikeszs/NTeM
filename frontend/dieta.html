@@ -124,9 +124,9 @@
 
             async function inicializarDados() {
                 try {
-                    const resAlimentos = await fetch("http://127.0.0.1:8000/alimentos/");
+                    const resAlimentos = await fetch("https://ntandm.onrender.com/alimentos/");
                     baseTACO = await resAlimentos.json();
-                    const resPacientes = await fetch("http://127.0.0.1:8000/pacientes/");
+                    const resPacientes = await fetch("https://ntandm.onrender.com/pacientes/");
                     listaPacientes = await resPacientes.json();
                     selectModal.innerHTML = '<option value="" selected disabled>Selecione um paciente...</option>';
                     listaPacientes.forEach(p => {
@@ -143,7 +143,7 @@
                 btnSalvarDieta.disabled = false;
 
                 try {
-                    const resDieta = await fetch(`http://127.0.0.1:8000/dietas/${id}`);
+                    const resDieta = await fetch(`https://ntandm.onrender.com/dietas/${id}`);
                     const dadosDietaDB = await resDieta.json();
 
                     if (dadosDietaDB.length > 0) {
@@ -334,7 +334,7 @@
                 btnSalvarDieta.disabled = true;
 
                 try {
-                    const resposta = await fetch("http://127.0.0.1:8000/dietas/", {
+                    const resposta = await fetch("https://ntandm.onrender.com/dietas/", {
                     method: "POST",
                     headers: { 
                         "Content-Type": "application/json",
