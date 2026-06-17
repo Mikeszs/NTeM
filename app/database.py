@@ -55,3 +55,12 @@ class ItemRefeicao(Base):
     refeicao_id = Column(Integer, ForeignKey("refeicoes.id"), index=True)
     alimento_id = Column(Integer, ForeignKey("alimentos_taco.id"))
     quantidade = Column(Float, nullable=False)
+
+class Usuario(Base):
+    __tablename__ = "usuarios"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    senha_hash = Column(String, nullable=False)
+    role = Column(String, default="paciente") # Pode ser: 'profissional' ou 'paciente'

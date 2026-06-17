@@ -3,13 +3,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
-from database import engine, Base, SessionLocal, Paciente, AlimentoTACO, Refeicao, ItemRefeicao
 import json
 import os
+from datetime import datetime, timedelta
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
+# IMPORTAÇÃO CORRIGIDA: Adicionado o 'Usuario' no final
+from database import engine, Base, SessionLocal, Paciente, AlimentoTACO, Refeicao, ItemRefeicao, Usuario
+
+# 1. CRIAÇÃO DO BANCO E DO APP (Devem ficar sempre no topo)
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="NutriSocial API", description="API para gestão nutricional")
+app = FastAPI(title="NutriSocial API", description="API para gestão nutricional e clínica")
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,6 +26,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 2. CONFIGURAÇÕES DE SEGURANÇA (JWT)
+SECRET_KEY = "sua_chave_secreta_super_segura_aqui" # Em produção, use variáveis de ambiente
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+
+# Função de Conexão com o Banco
 def get_db():
     db = SessionLocal()
     try:
@@ -26,7 +42,19 @@ def get_db():
     finally:
         db.close()
 
-# CONTRATOS PYDANTIC
+# 3. CONTRATOS PYDANTIC
+class UsuarioCadastro(BaseModel):
+    nome: str
+    email: str
+    senha: str
+    role: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    role: str
+    nome: str
+
 class PacienteCreate(BaseModel):
     nome: str
     objetivo: str
@@ -59,9 +87,73 @@ class DietaPayload(BaseModel):
     paciente_id: int
     refeicoes: List[RefeicaoCreate]
 
+# 4. FUNÇÕES AUXILIARES DE SEGURANÇA
+def obter_senha_hash(senha: str):
+    return pwd_context.hash(senha)
+
+def verificar_senha(senha_pura, senha_hash):
+    return pwd_context.verify(senha_pura, senha_hash)
+
+def criar_token_acesso(dados: dict):
+    dados_copia = dados.copy()
+    expiracao = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    dados_copia.update({"exp": expiracao})
+    return jwt.encode(dados_copia, SECRET_KEY, algorithm=ALGORITHM)
+
+def obter_usuario_atual(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    excecao_credenciais = HTTPException(status_code=401, detail="Token inválido ou expirado")
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise excecao_credenciais
+    except JWTError:
+        raise excecao_credenciais
+        
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    if usuario is None:
+        raise excecao_credenciais
+    return usuario
+
+# ==========================================
+# ROTAS DA API
+# ==========================================
+
 @app.get("/")
 async def raiz():
-    return {"mensagem": "O servidor do NutriSocial está online e conectado ao banco!"}
+    return {"mensagem": "O servidor do NutriSocial está online, seguro e conectado ao banco!"}
+
+# --- ROTAS DE AUTENTICAÇÃO ---
+@app.post("/auth/cadastro", status_code=201)
+async def cadastrar_usuario(usuario: UsuarioCadastro, db: Session = Depends(get_db)):
+    usuario_existe = db.query(Usuario).filter(Usuario.email == usuario.email).first()
+    if usuario_existe:
+        raise HTTPException(status_code=400, detail="E-mail já cadastrado")
+        
+    novo_usuario = Usuario(
+        nome=usuario.nome,
+        email=usuario.email,
+        senha_hash=obter_senha_hash(usuario.senha),
+        role=usuario.role.lower()
+    )
+    db.add(novo_usuario)
+    db.commit()
+    return {"mensagem": f"Usuário {novo_usuario.nome} criado com a função de {novo_usuario.role}!"}
+
+@app.post("/auth/login", response_model=Token)
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    usuario = db.query(Usuario).filter(Usuario.email == form_data.username).first()
+    if not usuario or not verificar_senha(form_data.password, usuario.senha_hash):
+        raise HTTPException(status_code=400, detail="E-mail ou senha incorretos")
+        
+    token_acesso = criar_token_acesso(dados={"sub": usuario.email, "role": usuario.role})
+    
+    return {
+        "access_token": token_acesso, 
+        "token_type": "bearer",
+        "role": usuario.role,
+        "nome": usuario.nome
+    }
 
 # --- ROTAS DE PACIENTES ---
 @app.get("/pacientes/")
@@ -140,8 +232,12 @@ async def importar_taco_completa(db: Session = Depends(get_db)):
     db.commit()
     return {"status": "sucesso", "mensagem": f"Carga concluída! {len(alimentos_para_inserir)} alimentos importados."}
 
+# Rota corrigida (removida a duplicação) e protegida com JWT
 @app.post("/dietas/")
-async def salvar_dieta(payload: DietaPayload, db: Session = Depends(get_db)):
+async def salvar_dieta(payload: DietaPayload, db: Session = Depends(get_db), usuario_logado: Usuario = Depends(obter_usuario_atual)):
+    if usuario_logado.role != "profissional":
+        raise HTTPException(status_code=403, detail="Acesso restrito a profissionais de nutrição")
+    
     refeicoes_antigas = db.query(Refeicao).filter(Refeicao.paciente_id == payload.paciente_id).all()
     for ref in refeicoes_antigas:
         db.query(ItemRefeicao).filter(ItemRefeicao.refeicao_id == ref.id).delete()
@@ -179,8 +275,8 @@ async def obter_dieta_paciente(paciente_id: int, db: Session = Depends(get_db)):
                     "carb_base": alimento.carb, 
                     "prot_base": alimento.prot, 
                     "gord_base": alimento.gord,
-                    "fibra_base": alimento.fibra, # AGORA RETORNA A FIBRA
-                    "sodio_base": alimento.sodio  # AGORA RETORNA O SÓDIO
+                    "fibra_base": alimento.fibra,
+                    "sodio_base": alimento.sodio
                 })
         resultado.append({"nome": ref.nome, "horario": ref.horario, "itens": lista_itens})
     return resultado
