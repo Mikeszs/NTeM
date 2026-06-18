@@ -378,9 +378,9 @@
                 btnPDF.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gerando...';
                 btnPDF.disabled = true;
 
-                // 3. Montagem do Layout HTML "Invisível" do Documento (Folha A4)
+                // 3. Montagem do Layout HTML Fluido (Sem max-width ou margin auto)
                 let conteudoHTML = `
-                    <div style="padding: 40px; font-family: Arial, sans-serif; color: #222; max-width: 800px; margin: 0 auto;">
+                    <div style="font-family: Arial, sans-serif; color: #222; width: 100%;">
                         
                         <div style="display: flex; align-items: center; border-bottom: 2px solid #28a745; padding-bottom: 15px; margin-bottom: 20px;">
                             
@@ -419,7 +419,7 @@
                         <h4 style="margin: 0 0 15px 0; color: #333; border-bottom: 2px solid #28a745; padding-bottom: 5px;">Prescrição Dietética</h4>
                 `;
 
-                // Faz um loop por todas as refeições montadas na tela
+                // Loop pelas refeições
                 dieta.forEach(ref => {
                     conteudoHTML += `
                         <div style="margin-bottom: 20px;">
@@ -466,7 +466,6 @@
                         });
                     }
 
-                    // Rodapé da Refeição (Totais)
                     conteudoHTML += `
                                 </tbody>
                                 <tfoot style="font-weight: bold; background-color: #f8f9fa; border-top: 2px solid #ddd;">
@@ -485,7 +484,7 @@
                     `;
                 });
 
-                // Bloco de Assinaturas (Rodapé do Documento)
+                // Rodapé de Assinaturas
                 conteudoHTML += `
                         <div style="margin-top: 60px; display: flex; justify-content: space-between; text-align: center; font-size: 13px;">
                             <div style="width: 45%;">
@@ -506,28 +505,22 @@
                     </div>
                 `;
 
-                // 4. Criação do elemento temporário para o gerador de PDF ler
-                const containerPDF = document.createElement('div');
-                containerPDF.style.width = '800px'; // Define a largura física do container
-                containerPDF.innerHTML = conteudoHTML;
-
-                // 5. Configuração de Qualidade e Formato do PDF
+                // 4. Configuração do PDF (Com Margens Corrigidas)
                 const opcoesPDF = {
-                    margin:       10, 
+                    margin:       [10, 10, 10, 10], // Protege contra cortes nas bordas da folha A4
                     filename:     `NutriSocial_Plano_${p.nome.replace(/\s+/g, '_')}.pdf`, 
                     image:        { type: 'jpeg', quality: 0.98 },
-                    // A mágica acontece aqui: windowWidth obriga o layout a ficar esticado!
-                    html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 }, 
+                    html2canvas:  { scale: 2, useCORS: true }, 
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } 
                 };
 
-                // 6. Geração Final e Download
-                // Passamos o container direto, a biblioteca cria o ambiente invisível dela com segurança
-                html2pdf().set(opcoesPDF).from(containerPDF).save().then(() => {
+                // 5. MÁGICA: Passamos a string de HTML diretamente. A biblioteca faz o resto!
+                html2pdf().set(opcoesPDF).from(conteudoHTML).save().then(() => {
                     // Restaura o botão após o download concluir
                     btnPDF.innerHTML = textoBtnOriginal;
                     btnPDF.disabled = false;
                 });
+            
             });
         });
 
