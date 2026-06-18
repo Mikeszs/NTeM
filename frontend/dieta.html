@@ -508,30 +508,22 @@
 
                 // 4. Criação do elemento temporário para o gerador de PDF ler
                 const containerPDF = document.createElement('div');
+                containerPDF.style.width = '800px'; // Define a largura física do container
                 containerPDF.innerHTML = conteudoHTML;
-
-                // --- A MÁGICA DA LARGURA ACONTECE AQUI ---
-                // Adicionamos na tela fora do campo de visão com uma largura fixa
-                containerPDF.style.position = 'absolute';
-                containerPDF.style.left = '-9999px'; // Esconde para a esquerda
-                containerPDF.style.width = '800px';  // Força o navegador a desenhar o layout aberto
-                document.body.appendChild(containerPDF);
 
                 // 5. Configuração de Qualidade e Formato do PDF
                 const opcoesPDF = {
                     margin:       10, 
                     filename:     `NutriSocial_Plano_${p.nome.replace(/\s+/g, '_')}.pdf`, 
                     image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2, useCORS: true }, // useCORS ajuda a carregar a imagem da logo
+                    // A mágica acontece aqui: windowWidth obriga o layout a ficar esticado!
+                    html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 }, 
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } 
                 };
 
                 // 6. Geração Final e Download
+                // Passamos o container direto, a biblioteca cria o ambiente invisível dela com segurança
                 html2pdf().set(opcoesPDF).from(containerPDF).save().then(() => {
-                    
-                    // Remove o container fantasma da tela após o download
-                    document.body.removeChild(containerPDF);
-
                     // Restaura o botão após o download concluir
                     btnPDF.innerHTML = textoBtnOriginal;
                     btnPDF.disabled = false;
