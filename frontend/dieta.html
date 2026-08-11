@@ -123,9 +123,9 @@
 
             async function inicializarDados() {
                 try {
-                    const resAlimentos = await fetch("https://ntandm.onrender.com/alimentos/");
+                    const resAlimentos = await fetch("https://ntandm.onrender.com/alimentos/", { headers: { "Authorization": `Bearer ${auth.token()}` } });
                     baseTACO = await resAlimentos.json();
-                    const resPacientes = await fetch("https://ntandm.onrender.com/pacientes/");
+                    const resPacientes = await fetch("https://ntandm.onrender.com/pacientes/", { headers: { "Authorization": `Bearer ${auth.token()}` } });
                     listaPacientes = await resPacientes.json();
                     selectModal.innerHTML = '<option value="" selected disabled>Selecione um paciente...</option>';
                     listaPacientes.forEach(p => {
@@ -142,7 +142,7 @@
                 btnSalvarDieta.disabled = false;
 
                 try {
-                    const resDieta = await fetch(`https://ntandm.onrender.com/dietas/${id}`);
+                    const resDieta = await fetch(`https://ntandm.onrender.com/dietas/${id}`, { headers: { "Authorization": `Bearer ${auth.token()}` } });
                     const dadosDietaDB = await resDieta.json();
 
                     if (dadosDietaDB.length > 0) {

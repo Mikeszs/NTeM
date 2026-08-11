@@ -197,7 +197,7 @@
             // CARREGA LISTA NO MODAL
             async function carregarPacientes() {
                 try {
-                    const res = await fetch("https://ntandm.onrender.com/pacientes/");
+                    const res = await fetch("https://ntandm.onrender.com/pacientes/", { headers: { "Authorization": `Bearer ${auth.token()}` } });
                     const pacientes = await res.json();
                     selectModal.innerHTML = '<option value="" selected disabled>Escolha o paciente...</option>';
                     pacientes.forEach(p => {
@@ -209,7 +209,7 @@
             // CARREGA DADOS DO PACIENTE SELECIONADO NOS INPUTS
             async function selecionarPaciente(id) {
                 try {
-                    const res = await fetch(`https://ntandm.onrender.com/pacientes/${id}`);
+                    const res = await fetch(`https://ntandm.onrender.com/pacientes/${id}`, { headers: { "Authorization": `Bearer ${auth.token()}` } });
                     pacienteAtual = await res.json();
 
                     document.getElementById('nomePacienteAtivo').textContent = pacienteAtual.nome;
@@ -294,7 +294,7 @@
                 try {
                     const res = await fetch(`https://ntandm.onrender.com/pacientes/${pacienteAtual.id}`, {
                         method: "PUT",
-                        headers: { "Content-Type": "application/json" },
+                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${auth.token()}` },
                         body: JSON.stringify(payload)
                     });
 
