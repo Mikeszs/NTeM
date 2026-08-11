@@ -32,10 +32,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://n-et-m.vercel.app"],
+    allow_origins=["https://ntem.vercel.app/login.html"],
     allow_credentials=True,
-    allow_methods=["https://n-et-m.vercel.app"],
-    allow_headers=["https://n-et-m.vercel.app"],
+    allow_methods=["https://ntem.vercel.app/login.html"],
+    allow_headers=["https://ntem.vercel.app/login.html"],
 )
 
 # =============================================================================
