@@ -105,18 +105,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <script src="auth.js"></script>
     <script>
-                    // ==========================================
-            // GUARDA DE ROTA (Proteção da Página)
-            // ==========================================
-            const tokenAuth = localStorage.getItem('token_nutrisocial');
-            const roleAuth = localStorage.getItem('role_nutrisocial');
-
-            // Se não tiver token ou não for profissional, expulsa para o login
-            if (!tokenAuth || roleAuth !== 'profissional') {
-                window.location.href = "login.html";
-            }
+            // Guarda de rota: exige profissional autenticado
+            auth.exigir('profissional');
+            const tokenAuth = auth.token();
+            const roleAuth  = auth.role();
             // ==========================================
         document.addEventListener("DOMContentLoaded", function() {
             const el = document.getElementById("wrapper");
@@ -133,10 +127,8 @@
         document.getElementById('btnSair').addEventListener('click', function(e) {
             e.preventDefault();
             if(confirm("Deseja realmente sair do sistema?")) {
-                // Destrói as chaves do cofre do navegador
-                localStorage.removeItem('token_nutrisocial');
-                localStorage.removeItem('role_nutrisocial');
-                localStorage.removeItem('nome_nutrisocial');
+                // Destrói a sessão via módulo central
+                auth.limpar();
                 
                 // Redireciona para o login
                 window.location.href = "login.html";

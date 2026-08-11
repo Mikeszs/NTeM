@@ -34,6 +34,7 @@
         </form>
     </div>
 
+    <script src="auth.js"></script>
     <script>
         document.getElementById('formLogin').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -52,18 +53,14 @@
 
                 if (resposta.ok) {
                     const dadosAuth = await resposta.json();
-                    
-                    // Guarda as informações de segurança no navegador
-                    localStorage.setItem('token_nutrisocial', dadosAuth.access_token);
-                    localStorage.setItem('role_nutrisocial', dadosAuth.role);
-                    localStorage.setItem('nome_nutrisocial', dadosAuth.nome);
 
-                    // Redirecionamento baseado no nível de permissão (Feature do Futuro!)
+                    // Salva a sessão via módulo central (sessionStorage, sem expor em texto puro)
+                    auth.salvar(dadosAuth.access_token, dadosAuth.role, dadosAuth.nome);
+
                     if (dadosAuth.role === 'profissional') {
-                        window.location.href = "index.html"; // Vai para o dashboard da Thaminy
+                        window.location.href = "index.html";
                     } else {
-                        alert(`Olá ${dadosAuth.nome}! A área do paciente (Agenda/Plano) estará disponível em breve.`);
-                        // window.location.href = "painel_paciente.html";
+                        alert(`Olá ${dadosAuth.nome}! A área do paciente estará disponível em breve.`);
                     }
                 } else {
                     alert("❌ Credenciais inválidas. Verifique seu e-mail e senha.");
