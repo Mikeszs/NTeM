@@ -1,13 +1,28 @@
-# Ignorar ambientes virtuais
+# Ambiente virtual Python
 .venv/
 venv/
-nutrisocial-backend/venv/
 env/
-
-# Ignorar arquivos de cache do Python
-__pycache__/
-*.pyc
-
-# Ignorar banco de dados local antigo
+ 
+# Variáveis de ambiente — NUNCA commitar este arquivo
+.env
+.env.local
+.env.production
+ 
+# Banco SQLite local (apenas para testes offline)
 *.db
-nutrisocial.db
+*.sqlite3
+ 
+# Cache Python
+__pycache__/
+*.py[cod]
+*.pyo
+ 
+# VS Code
+.vscode/
+ 
+# Sistema operacional
+.DS_Store
+Thumbs.db
+ 
+# Logs
+*.log
