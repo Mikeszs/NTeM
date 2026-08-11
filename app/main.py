@@ -32,10 +32,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://ntem.vercel.app/login.html"],
+    allow_origins=["https://n-et-m.vercel.app"],
     allow_credentials=True,
-    allow_methods=["https://ntem.vercel.app/login.html"],
-    allow_headers=["https://ntem.vercel.app/login.html"],
+    allow_methods=["https://n-et-m.vercel.app"],
+    allow_headers=["https://n-et-m.vercel.app"],
 )
 
 # =============================================================================
@@ -46,7 +46,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM  = "HS256"
 
 # Lê o tempo de expiração do ambiente; fallback para 60 minutos
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
 if not SECRET_KEY:
     raise RuntimeError(
@@ -206,18 +206,31 @@ async def login(
 # --- PACIENTES ---
 
 @app.get("/pacientes/")
-async def listar_pacientes(db: Session = Depends(get_db)):
+async def listar_pacientes(
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(obter_usuario_atual),
+):
     return db.query(Paciente).all()
 
 @app.get("/pacientes/{paciente_id}")
-async def obter_paciente(paciente_id: int, db: Session = Depends(get_db)):
+async def obter_paciente(
+    paciente_id: int,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(obter_usuario_atual),
+):
     paciente = db.query(Paciente).filter(Paciente.id == paciente_id).first()
     if not paciente:
         raise HTTPException(status_code=404, detail="Paciente não encontrado")
     return paciente
 
 @app.post("/pacientes/")
-async def criar_paciente(paciente: PacienteCreate, db: Session = Depends(get_db)):
+async def criar_paciente(
+    paciente: PacienteCreate,
+    db: Session = Depends(get_db),
+    usuario_logado: Usuario = Depends(obter_usuario_atual),
+):
+    if usuario_logado.role != "profissional":
+        raise HTTPException(status_code=403, detail="Acesso restrito a profissionais.")
     novo = Paciente(
         nome=paciente.nome,
         objetivo=paciente.objetivo,
@@ -234,7 +247,10 @@ async def atualizar_paciente(
     paciente_id: int,
     dados: PacienteUpdate,
     db: Session = Depends(get_db),
+    usuario_logado: Usuario = Depends(obter_usuario_atual),
 ):
+    if usuario_logado.role != "profissional":
+        raise HTTPException(status_code=403, detail="Acesso restrito a profissionais.")
     paciente = db.query(Paciente).filter(Paciente.id == paciente_id).first()
     if not paciente:
         raise HTTPException(status_code=404, detail="Paciente não encontrado")
@@ -259,11 +275,20 @@ async def atualizar_paciente(
 # --- ALIMENTOS (TACO) ---
 
 @app.get("/alimentos/")
-async def listar_alimentos(db: Session = Depends(get_db)):
+async def listar_alimentos(
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(obter_usuario_atual),
+):
     return db.query(AlimentoTACO).all()
 
 @app.post("/importar-taco-completa/")
-async def importar_taco_completa(db: Session = Depends(get_db)):
+async def importar_taco_completa(
+    db: Session = Depends(get_db),
+    usuario_logado: Usuario = Depends(obter_usuario_atual),
+):
+    """Importa o taco.json. Restrito a profissionais. Bloqueada se banco já populado."""
+    if usuario_logado.role != "profissional":
+        raise HTTPException(status_code=403, detail="Acesso restrito a profissionais.")
     """Importa o taco.json para o banco. Abortada se já houver alimentos."""
     quantidade = db.query(AlimentoTACO).count()
     if quantidade > 0:
@@ -336,7 +361,11 @@ async def salvar_dieta(
 
 
 @app.get("/dietas/{paciente_id}")
-async def obter_dieta_paciente(paciente_id: int, db: Session = Depends(get_db)):
+async def obter_dieta_paciente(
+    paciente_id: int,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(obter_usuario_atual),
+):
     refeicoes = db.query(Refeicao).filter(Refeicao.paciente_id == paciente_id).all()
     resultado = []
 
