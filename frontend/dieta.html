@@ -356,170 +356,236 @@
             document.getElementById('btnGerarPDF').addEventListener('click', function() {
                 if (!pacienteIdAtivo) return alert("Selecione um paciente para gerar o documento.");
 
-                // Puxa os dados completos do paciente que já estão na memória
                 const p = listaPacientes.find(pac => pac.id === pacienteIdAtivo);
+                if (!p) return alert("Dados do paciente não encontrados. Recarregue a página.");
 
-                // 1. Cálculos Rápidos para o Cabeçalho do PDF
+                // --- Cálculos do cabeçalho ---
                 let imc = "-", tmb = "-";
-                if (p.peso && p.altura) imc = (p.peso / ((p.altura / 100) ** 2)).toFixed(1);
+                if (p.peso && p.altura) {
+                    imc = (p.peso / ((p.altura / 100) ** 2)).toFixed(1);
+                }
                 if (p.peso && p.altura && p.idade) {
-                    let baseTMB = p.sexo === 'M' 
+                    const base = p.sexo === 'M'
                         ? 66.5 + (13.75 * p.peso) + (5.003 * p.altura) - (6.75 * p.idade)
                         : 655.1 + (9.563 * p.peso) + (1.85 * p.altura) - (4.676 * p.idade);
-                    tmb = Math.round(baseTMB) + " kcal/dia";
+                    tmb = Math.round(base) + " kcal/dia";
                 }
-
                 const dataAtual = new Date().toLocaleDateString('pt-BR');
 
-                // 2. Muda o botão para modo de carregamento
+                // --- Feedback no botão ---
                 const btnPDF = document.getElementById('btnGerarPDF');
                 const textoBtnOriginal = btnPDF.innerHTML;
                 btnPDF.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gerando...';
                 btnPDF.disabled = true;
 
-                // 3. Montagem do Layout HTML Fluido (Sem max-width ou margin auto)
-                let conteudoHTML = `
-                    <div style="font-family: Arial, sans-serif; color: #222; width: 100%;">
-                        
-                        <div style="display: flex; align-items: center; border-bottom: 2px solid #28a745; padding-bottom: 15px; margin-bottom: 20px;">
-                            
-                            <div style="margin-right: 20px;">
-                                <img src="logo.png" alt="Logo NutriSocial" style="max-width: 80px; max-height: 80px; object-fit: contain;">
-                            </div>
-                            
-                            <div style="text-align: left;">
-                                <h2 style="margin: 0; color: #28a745; text-transform: uppercase;">Prontuário e Plano Alimentar</h2>
-                                <p style="margin: 5px 0 0 0; color: #555; font-size: 14px;">NutriSocial - Acompanhamento Clínico Individualizado</p>
-                                <p style="margin: 5px 0 0 0; font-size: 12px; color: #777;">Data de Emissão: ${dataAtual}</p>
-                            </div>
+                // ─────────────────────────────────────────────────────────
+                // ESTRATÉGIA: criar elemento DOM real no documento (oculto).
+                // html2canvas renderiza DOM — não strings soltas.
+                // Todos os estilos são inline para não depender de CSS externo.
+                // ─────────────────────────────────────────────────────────
+                const wrapper = document.createElement('div');
+                wrapper.id = 'pdf-render-area';
+
+                // Posiciona fora da tela mas ainda no documento (obrigatório para
+                // o html2canvas funcionar — display:none impede a renderização)
+                Object.assign(wrapper.style, {
+                    position:   'fixed',
+                    top:        '-9999px',
+                    left:       '-9999px',
+                    width:      '794px',      // largura A4 a 96dpi
+                    background: '#ffffff',
+                    fontFamily: 'Arial, sans-serif',
+                    color:      '#222',
+                    padding:    '40px',
+                    boxSizing:  'border-box',
+                    zIndex:     '-1',
+                });
+
+                // --- Cabeçalho ---
+                const cabecalho = `
+                    <div style="display:flex;align-items:center;border-bottom:2px solid #28a745;
+                                padding-bottom:15px;margin-bottom:20px;">
+                        <div style="margin-right:16px;font-size:36px;">🥗</div>
+                        <div>
+                            <h2 style="margin:0;color:#28a745;font-size:18px;text-transform:uppercase;">
+                                Prontuário e Plano Alimentar
+                            </h2>
+                            <p style="margin:4px 0 0;color:#555;font-size:13px;">
+                                NutriSocial — Acompanhamento Clínico Individualizado
+                            </p>
+                            <p style="margin:2px 0 0;font-size:11px;color:#888;">
+                                Data de Emissão: ${dataAtual}
+                            </p>
                         </div>
+                    </div>`;
 
-                        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 25px;">
-                            <h4 style="margin: 0 0 10px 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Identificação do Paciente</h4>
-                            <table style="width: 100%; font-size: 13px; line-height: 1.6;">
-                                <tr>
-                                    <td width="50%"><b>Nome:</b> ${p.nome}</td>
-                                    <td width="50%"><b>Idade / Sexo:</b> ${p.idade || '-'} anos / ${p.sexo === 'M' ? 'Masculino' : 'Feminino'}</td>
-                                </tr>
-                                <tr>
-                                    <td><b>Peso Atual:</b> ${p.peso || '-'} kg</td>
-                                    <td><b>Altura:</b> ${p.altura || '-'} cm</td>
-                                </tr>
-                                <tr>
-                                    <td><b>IMC:</b> ${imc}</td>
-                                    <td><b>Taxa Metabólica Basal:</b> ${tmb}</td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2"><b>Objetivo Clínico:</b> ${p.objetivo}</td>
-                                </tr>
-                            </table>
-                        </div>
+                // --- Identificação do paciente ---
+                const identificacao = `
+                    <div style="background:#f8f9fa;padding:14px;border-radius:8px;
+                                border:1px solid #ddd;margin-bottom:22px;">
+                        <h4 style="margin:0 0 10px;color:#333;font-size:14px;
+                                   border-bottom:1px solid #ccc;padding-bottom:5px;">
+                            Identificação do Paciente
+                        </h4>
+                        <table style="width:100%;font-size:12px;line-height:1.8;border-collapse:collapse;">
+                            <tr>
+                                <td width="50%"><b>Nome:</b> ${p.nome}</td>
+                                <td><b>Idade / Sexo:</b> ${p.idade || '-'} anos / ${p.sexo === 'M' ? 'Masculino' : 'Feminino'}</td>
+                            </tr>
+                            <tr>
+                                <td><b>Peso Atual:</b> ${p.peso || '-'} kg</td>
+                                <td><b>Altura:</b> ${p.altura || '-'} cm</td>
+                            </tr>
+                            <tr>
+                                <td><b>IMC:</b> ${imc}</td>
+                                <td><b>Taxa Metabólica Basal:</b> ${tmb}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2"><b>Objetivo Clínico:</b> ${p.objetivo || '-'}</td>
+                            </tr>
+                        </table>
+                    </div>`;
 
-                        <h4 style="margin: 0 0 15px 0; color: #333; border-bottom: 2px solid #28a745; padding-bottom: 5px;">Prescrição Dietética</h4>
-                `;
+                // --- Título da prescrição ---
+                let prescricao = `
+                    <h4 style="margin:0 0 14px;color:#333;font-size:14px;
+                               border-bottom:2px solid #28a745;padding-bottom:5px;">
+                        Prescrição Dietética
+                    </h4>`;
 
-                // Loop pelas refeições
+                // --- Loop pelas refeições ---
                 dieta.forEach(ref => {
-                    conteudoHTML += `
-                        <div style="margin-bottom: 20px;">
-                            <h5 style="margin: 0 0 8px 0; color: #fff; background-color: #28a745; padding: 6px 10px; border-radius: 4px;">
-                                ${ref.horario} - ${ref.nome}
-                            </h5>
-                            <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: center;">
-                                <thead>
-                                    <tr style="background-color: #eee; border-bottom: 2px solid #ccc;">
-                                        <th style="padding: 6px; text-align: left;">Alimento</th>
-                                        <th style="padding: 6px;">Qtd (g)</th>
-                                        <th style="padding: 6px;">Kcal</th>
-                                        <th style="padding: 6px;">Carb</th>
-                                        <th style="padding: 6px;">Prot</th>
-                                        <th style="padding: 6px;">Gord</th>
-                                        <th style="padding: 6px; color: #28a745;">Fibra</th>
-                                        <th style="padding: 6px; color: #dc3545;">Sódio</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                    `;
+                    let tKcal=0, tCarb=0, tProt=0, tGord=0, tFibra=0, tSodio=0;
+                    let linhas = '';
 
-                    let tKcal = 0, tCarb = 0, tProt = 0, tGord = 0, tFibra = 0, tSodio = 0;
-
-                    if(ref.itens.length === 0) {
-                        conteudoHTML += `<tr><td colspan="8" style="padding: 10px; color: #999;">Nenhum alimento registrado nesta refeição.</td></tr>`;
+                    if (!ref.itens || ref.itens.length === 0) {
+                        linhas = `<tr><td colspan="8" style="padding:8px;color:#999;text-align:center;">
+                                    Nenhum alimento registrado.
+                                  </td></tr>`;
                     } else {
                         ref.itens.forEach(item => {
-                            tKcal += item.calcKcal; tCarb += item.calcCarb; tProt += item.calcProt; 
-                            tGord += item.calcGord; tFibra += item.calcFibra; tSodio += item.calcSodio;
-                            
-                            conteudoHTML += `
-                                <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 6px; text-align: left; font-weight: bold; color: #444;">${item.nome}</td>
-                                    <td style="padding: 6px;">${item.quantidade}</td>
-                                    <td style="padding: 6px;">${item.calcKcal.toFixed(1)}</td>
-                                    <td style="padding: 6px;">${item.calcCarb.toFixed(1)}</td>
-                                    <td style="padding: 6px;">${item.calcProt.toFixed(1)}</td>
-                                    <td style="padding: 6px;">${item.calcGord.toFixed(1)}</td>
-                                    <td style="padding: 6px; color: #28a745;">${item.calcFibra.toFixed(1)}</td>
-                                    <td style="padding: 6px; color: #dc3545;">${item.calcSodio.toFixed(1)}</td>
-                                </tr>
-                            `;
+                            tKcal  += item.calcKcal;
+                            tCarb  += item.calcCarb;
+                            tProt  += item.calcProt;
+                            tGord  += item.calcGord;
+                            tFibra += item.calcFibra;
+                            tSodio += item.calcSodio;
+                            linhas += `
+                                <tr style="border-bottom:1px solid #eee;">
+                                    <td style="padding:5px 6px;text-align:left;font-weight:bold;color:#444;">
+                                        ${item.nome}
+                                    </td>
+                                    <td style="padding:5px 6px;text-align:center;">${item.quantidade}</td>
+                                    <td style="padding:5px 6px;text-align:center;">${item.calcKcal.toFixed(1)}</td>
+                                    <td style="padding:5px 6px;text-align:center;">${item.calcCarb.toFixed(1)}</td>
+                                    <td style="padding:5px 6px;text-align:center;">${item.calcProt.toFixed(1)}</td>
+                                    <td style="padding:5px 6px;text-align:center;">${item.calcGord.toFixed(1)}</td>
+                                    <td style="padding:5px 6px;text-align:center;color:#28a745;">${item.calcFibra.toFixed(1)}</td>
+                                    <td style="padding:5px 6px;text-align:center;color:#dc3545;">${item.calcSodio.toFixed(1)}</td>
+                                </tr>`;
                         });
                     }
 
-                    conteudoHTML += `
-                                </tbody>
-                                <tfoot style="font-weight: bold; background-color: #f8f9fa; border-top: 2px solid #ddd;">
+                    prescricao += `
+                        <div style="margin-bottom:18px;page-break-inside:avoid;">
+                            <h5 style="margin:0 0 6px;color:#fff;background:#28a745;
+                                       padding:6px 10px;border-radius:4px;font-size:13px;">
+                                ${ref.horario} — ${ref.nome}
+                            </h5>
+                            <table style="width:100%;border-collapse:collapse;font-size:11px;text-align:center;">
+                                <thead>
+                                    <tr style="background:#eeeeee;border-bottom:2px solid #ccc;">
+                                        <th style="padding:5px 6px;text-align:left;">Alimento</th>
+                                        <th style="padding:5px 6px;">Qtd (g)</th>
+                                        <th style="padding:5px 6px;">Kcal</th>
+                                        <th style="padding:5px 6px;">Carb</th>
+                                        <th style="padding:5px 6px;">Prot</th>
+                                        <th style="padding:5px 6px;">Gord</th>
+                                        <th style="padding:5px 6px;color:#28a745;">Fibra</th>
+                                        <th style="padding:5px 6px;color:#dc3545;">Sódio</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${linhas}</tbody>
+                                <tfoot style="font-weight:bold;background:#f8f9fa;border-top:2px solid #ddd;">
                                     <tr>
-                                        <td colspan="2" style="padding: 6px; text-align: right;">Totais da Refeição:</td>
-                                        <td style="padding: 6px;">${tKcal.toFixed(1)}</td>
-                                        <td style="padding: 6px;">${tCarb.toFixed(1)}</td>
-                                        <td style="padding: 6px;">${tProt.toFixed(1)}</td>
-                                        <td style="padding: 6px;">${tGord.toFixed(1)}</td>
-                                        <td style="padding: 6px; color: #28a745;">${tFibra.toFixed(1)}</td>
-                                        <td style="padding: 6px; color: #dc3545;">${tSodio.toFixed(1)}</td>
+                                        <td colspan="2" style="padding:5px 6px;text-align:right;">
+                                            Totais da Refeição:
+                                        </td>
+                                        <td style="padding:5px 6px;">${tKcal.toFixed(1)}</td>
+                                        <td style="padding:5px 6px;">${tCarb.toFixed(1)}</td>
+                                        <td style="padding:5px 6px;">${tProt.toFixed(1)}</td>
+                                        <td style="padding:5px 6px;">${tGord.toFixed(1)}</td>
+                                        <td style="padding:5px 6px;color:#28a745;">${tFibra.toFixed(1)}</td>
+                                        <td style="padding:5px 6px;color:#dc3545;">${tSodio.toFixed(1)}</td>
                                     </tr>
                                 </tfoot>
                             </table>
-                        </div>
-                    `;
+                        </div>`;
                 });
 
-                // Rodapé de Assinaturas
-                conteudoHTML += `
-                        <div style="margin-top: 60px; display: flex; justify-content: space-between; text-align: center; font-size: 13px;">
-                            <div style="width: 45%;">
-                                <hr style="border: 1px solid #333; margin-bottom: 5px;">
-                                <b>${p.nome}</b><br>
-                                <span style="color: #666;">Assinatura do Paciente</span>
-                            </div>
-                            <div style="width: 45%;">
-                                <hr style="border: 1px solid #333; margin-bottom: 5px;">
-                                <b>Nutricionista Responsável</b><br>
-                                <span style="color: #666;">CRN: _________</span>
-                            </div>
+                // --- Rodapé de assinaturas ---
+                const rodape = `
+                    <div style="margin-top:60px;display:flex;justify-content:space-between;
+                                text-align:center;font-size:12px;">
+                        <div style="width:45%;">
+                            <hr style="border:1px solid #333;margin-bottom:5px;">
+                            <b>${p.nome}</b><br>
+                            <span style="color:#666;">Assinatura do Paciente</span>
                         </div>
-                        
-                        <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #aaa;">
-                            Documento gerado eletronicamente pelo sistema NutriSocial.
+                        <div style="width:45%;">
+                            <hr style="border:1px solid #333;margin-bottom:5px;">
+                            <b>Nutricionista Responsável</b><br>
+                            <span style="color:#666;">CRN: _________</span>
                         </div>
                     </div>
-                `;
+                    <div style="margin-top:24px;text-align:center;font-size:10px;color:#aaa;">
+                        Documento gerado eletronicamente pelo sistema NutriSocial.
+                    </div>`;
 
-                // 4. Configuração do PDF (Com Margens Corrigidas)
+                wrapper.innerHTML = cabecalho + identificacao + prescricao + rodape;
+                document.body.appendChild(wrapper);
+
+                // --- Opções do html2pdf ---
                 const opcoesPDF = {
-                    margin:       [10, 10, 10, 10], // Protege contra cortes nas bordas da folha A4
-                    filename:     `NutriSocial_Plano_${p.nome.replace(/\s+/g, '_')}.pdf`, 
-                    image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2, useCORS: true }, 
-                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+                    margin:      [10, 10, 10, 10],
+                    filename:    `NutriSocial_Plano_${p.nome.replace(/\s+/g, '_')}.pdf`,
+                    image:       { type: 'jpeg', quality: 0.98 },
+                    html2canvas: {
+                        scale:       2,
+                        useCORS:     true,
+                        logging:     false,
+                        windowWidth: 794,       // largura fixa A4 — evita layout responsivo errado
+                        onclone:     (doc) => {
+                            // Garante que o elemento clonado está visível para o canvas
+                            const el = doc.getElementById('pdf-render-area');
+                            if (el) {
+                                el.style.position = 'relative';
+                                el.style.top      = '0';
+                                el.style.left     = '0';
+                            }
+                        }
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
                 };
 
-                // 5. MÁGICA: Passamos a string de HTML diretamente. A biblioteca faz o resto!
-                html2pdf().set(opcoesPDF).from(conteudoHTML).save().then(() => {
-                    // Restaura o botão após o download concluir
-                    btnPDF.innerHTML = textoBtnOriginal;
-                    btnPDF.disabled = false;
-                });
-            
+                html2pdf()
+                    .set(opcoesPDF)
+                    .from(wrapper)              // ← elemento DOM real, não string
+                    .save()
+                    .then(() => {
+                        document.body.removeChild(wrapper);  // limpa o DOM após gerar
+                        btnPDF.innerHTML = textoBtnOriginal;
+                        btnPDF.disabled  = false;
+                    })
+                    .catch((err) => {
+                        console.error('Erro ao gerar PDF:', err);
+                        document.body.removeChild(wrapper);
+                        btnPDF.innerHTML = textoBtnOriginal;
+                        btnPDF.disabled  = false;
+                        alert('Erro ao gerar o PDF. Verifique o console para detalhes.');
+                    });
+
             });
         });
 
