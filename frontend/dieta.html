@@ -6,7 +6,6 @@
     <title>NutriSocial | Plano Alimentar</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -83,6 +82,7 @@
                     <select id="selectModalPaciente" class="form-select border-secondary">
                         <option value="" selected disabled>Carregando pacientes...</option>
                     </select>
+                    <div id="alertaErroPacientes" class="alert alert-danger mt-3 mb-0" style="display:none;"></div>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary rounded-pill" data-bs-modal="modal" data-bs-dismiss="modal">Cancelar</button>
@@ -93,6 +93,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="config.js"></script>
     <script src="auth.js"></script>
     
     <script>
@@ -101,8 +102,6 @@
             // ==========================================
             const tokenAuth = auth.token();
             const roleAuth = auth.role();
-
-            // Se não tiver token ou não for profissional, expulsa para o login
             auth.exigir('profissional');
             // ==========================================
         document.addEventListener("DOMContentLoaded", async function() {
@@ -120,18 +119,69 @@
             const btnNovaRefeicao = document.getElementById('btnNovaRefeicao');
             const btnSalvarDieta = document.getElementById('btnSalvarDieta');
             const selectModal = document.getElementById('selectModalPaciente');
+            const alertaErroPacientes = document.getElementById('alertaErroPacientes');
 
+            // ──────────────────────────────────────────────────────────────
+            // Helper: busca autenticada com verificação de status.
+            // Nunca falha silenciosamente — sempre lança um erro descritivo.
+            // ──────────────────────────────────────────────────────────────
+            async function fetchAutenticado(url) {
+                const resposta = await fetch(url, {
+                    headers: { "Authorization": `Bearer ${auth.token()}` }
+                });
+                if (resposta.status === 401) throw new Error("SESSAO_EXPIRADA");
+                if (!resposta.ok) throw new Error(`Servidor respondeu ${resposta.status} para ${url}`);
+                return resposta.json();
+            }
+
+            function mostrarErroPacientes(mensagem) {
+                alertaErroPacientes.textContent = mensagem;
+                alertaErroPacientes.style.display = 'block';
+                selectModal.innerHTML = '<option value="" selected disabled>Não foi possível carregar</option>';
+            }
+
+            // ──────────────────────────────────────────────────────────────
+            // CORREÇÃO PRINCIPAL:
+            // As duas requisições (alimentos e pacientes) agora rodam de
+            // forma INDEPENDENTE, cada uma com seu próprio try/catch.
+            // Antes, estavam sequenciais dentro do mesmo bloco — se
+            // /alimentos/ (tabela TACO inteira) falhasse ou demorasse,
+            // /pacientes/ nunca chegava a ser chamada, e o erro era
+            // engolido silenciosamente pelo catch genérico. Por isso o
+            // select ficava travado em "Carregando pacientes..." pra sempre.
+            // ──────────────────────────────────────────────────────────────
             async function inicializarDados() {
                 try {
-                    const resAlimentos = await fetch("https://ntandm.onrender.com/alimentos/", { headers: { "Authorization": `Bearer ${auth.token()}` } });
-                    baseTACO = await resAlimentos.json();
-                    const resPacientes = await fetch("https://ntandm.onrender.com/pacientes/", { headers: { "Authorization": `Bearer ${auth.token()}` } });
-                    listaPacientes = await resPacientes.json();
+                    baseTACO = await fetchAutenticado(`${API_BASE}/alimentos/`);
+                } catch (e) {
+                    console.error("Erro ao carregar alimentos (TACO):", e.message);
+                }
+
+                try {
+                    listaPacientes = await fetchAutenticado(`${API_BASE}/pacientes/`);
+
+                    if (listaPacientes.length === 0) {
+                        selectModal.innerHTML = '<option value="" selected disabled>Nenhum paciente cadastrado</option>';
+                        return;
+                    }
+
                     selectModal.innerHTML = '<option value="" selected disabled>Selecione um paciente...</option>';
                     listaPacientes.forEach(p => {
-                        selectModal.innerHTML += `<option value="${p.id}">${p.nome} (${p.objetivo})</option>`;
+                        selectModal.innerHTML += `<option value="${p.id}">${p.nome} (${p.objetivo || 'sem objetivo'})</option>`;
                     });
-                } catch (e) { console.error("Erro na API", e); }
+
+                } catch (e) {
+                    console.error("Erro ao carregar pacientes:", e.message);
+                    if (e.message === "SESSAO_EXPIRADA") {
+                        mostrarErroPacientes("Sua sessão expirou. Faça login novamente.");
+                        setTimeout(() => { auth.limpar(); window.location.href = "login.html"; }, 2500);
+                    } else {
+                        mostrarErroPacientes(
+                            `Não foi possível carregar os pacientes. (${e.message}) ` +
+                            `Verifique se o backend está rodando e se a URL em config.js está correta.`
+                        );
+                    }
+                }
             }
 
             async function carregarDietaDoPaciente(id) {
@@ -142,8 +192,7 @@
                 btnSalvarDieta.disabled = false;
 
                 try {
-                    const resDieta = await fetch(`https://ntandm.onrender.com/dietas/${id}`, { headers: { "Authorization": `Bearer ${auth.token()}` } });
-                    const dadosDietaDB = await resDieta.json();
+                    const dadosDietaDB = await fetchAutenticado(`${API_BASE}/dietas/${id}`);
 
                     if (dadosDietaDB.length > 0) {
                         contadorID = 0;
@@ -159,8 +208,8 @@
                                         calcCarb: item.carb_base * fator,
                                         calcProt: item.prot_base * fator,
                                         calcGord: item.gord_base * fator,
-                                        calcFibra: (item.fibra_base || 0) * fator, // CÁLCULO DA FIBRA
-                                        calcSodio: (item.sodio_base || 0) * fator  // CÁLCULO DO SÓDIO
+                                        calcFibra: (item.fibra_base || 0) * fator,
+                                        calcSodio: (item.sodio_base || 0) * fator
                                     };
                                 })
                             };
@@ -170,7 +219,10 @@
                         dieta = [{ id: 1, nome: "Café da Manhã", horario: "08:00", itens: [] }];
                     }
                     renderizarDieta();
-                } catch (e) { console.error(e); }
+                } catch (e) {
+                    console.error("Erro ao carregar dieta do paciente:", e.message);
+                    alert(`Erro ao carregar o plano alimentar deste paciente: ${e.message}`);
+                }
             }
 
             document.getElementById('btnConfirmarPaciente').addEventListener('click', function() {
@@ -218,7 +270,11 @@
                     }
 
                     let optionsTACO = '<option value="" selected disabled>Selecione um alimento...</option>';
-                    baseTACO.forEach(a => { optionsTACO += `<option value="${a.id}">${a.nome}</option>`; });
+                    if (baseTACO.length === 0) {
+                        optionsTACO = '<option value="" selected disabled>Tabela TACO indisponível — verifique o backend</option>';
+                    } else {
+                        baseTACO.forEach(a => { optionsTACO += `<option value="${a.id}">${a.nome}</option>`; });
+                    }
 
                     const card = document.createElement('div');
                     card.className = 'card card-custom border-0 p-4 mb-4 shadow-sm';
@@ -311,10 +367,7 @@
             });
 
             btnSalvarDieta.addEventListener('click', async function() {
-                // 1. Busca a chave salva no navegador
                 const token = auth.token();
-                
-                // Se não tiver token, expulsa para o login
                 if (!token) {
                     alert("Sua sessão expirou. Por favor, faça login novamente.");
                     window.location.href = "login.html";
@@ -333,17 +386,19 @@
                 btnSalvarDieta.disabled = true;
 
                 try {
-                    const resposta = await fetch("https://ntandm.onrender.com/dietas/", {
-                    method: "POST",
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`  // <--- A MÁGICA ACONTECE AQUI
-                    },
-                    body: JSON.stringify(payload)
-                });
+                    const resposta = await fetch(`${API_BASE}/dietas/`, {
+                        method: "POST",
+                        headers: { 
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
                     if (resposta.ok) alert("✅ Plano Alimentar atualizado com sucesso!");
-                    else alert("❌ Erro ao atualizar o plano.");
-                } catch (erro) { alert("⚠️ Erro de conexão com o Back-End."); } 
+                    else alert(`❌ Erro ao atualizar o plano (status ${resposta.status}).`);
+                } catch (erro) {
+                    alert("⚠️ Erro de conexão com o Back-End.");
+                } 
                 finally { btnSalvarDieta.innerHTML = textoOriginal; btnSalvarDieta.disabled = false; }
             });
 
@@ -351,7 +406,7 @@
             renderizarDieta();
 
             // ==========================================
-            // GERADOR DE PDF PROFISSIONAL (PRONTUÁRIO)
+            // GERADOR DE PDF — window.open + CSS de impressão
             // ==========================================
             document.getElementById('btnGerarPDF').addEventListener('click', function() {
                 if (!pacienteIdAtivo) return alert("Selecione um paciente para gerar o documento.");
@@ -359,7 +414,10 @@
                 const p = listaPacientes.find(pac => pac.id === pacienteIdAtivo);
                 if (!p) return alert("Dados do paciente não encontrados. Recarregue a página.");
 
-                // --- Cálculos do cabeçalho ---
+                if (!dieta || dieta.length === 0) {
+                    return alert("Este paciente ainda não possui refeições cadastradas no plano.");
+                }
+
                 let imc = "-", tmb = "-";
                 if (p.peso && p.altura) {
                     imc = (p.peso / ((p.altura / 100) ** 2)).toFixed(1);
@@ -372,96 +430,13 @@
                 }
                 const dataAtual = new Date().toLocaleDateString('pt-BR');
 
-                // --- Feedback no botão ---
-                const btnPDF = document.getElementById('btnGerarPDF');
-                const textoBtnOriginal = btnPDF.innerHTML;
-                btnPDF.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gerando...';
-                btnPDF.disabled = true;
-
-                // ─────────────────────────────────────────────────────────
-                // ESTRATÉGIA: criar elemento DOM real no documento (oculto).
-                // html2canvas renderiza DOM — não strings soltas.
-                // Todos os estilos são inline para não depender de CSS externo.
-                // ─────────────────────────────────────────────────────────
-                const wrapper = document.createElement('div');
-                wrapper.id = 'pdf-render-area';
-
-                // Posiciona fora da tela mas ainda no documento (obrigatório para
-                // o html2canvas funcionar — display:none impede a renderização)
-                Object.assign(wrapper.style, {
-                    position:   'fixed',
-                    top:        '-9999px',
-                    left:       '-9999px',
-                    width:      '794px',      // largura A4 a 96dpi
-                    background: '#ffffff',
-                    fontFamily: 'Arial, sans-serif',
-                    color:      '#222',
-                    padding:    '40px',
-                    boxSizing:  'border-box',
-                    zIndex:     '-1',
-                });
-
-                // --- Cabeçalho ---
-                const cabecalho = `
-                    <div style="display:flex;align-items:center;border-bottom:2px solid #28a745;
-                                padding-bottom:15px;margin-bottom:20px;">
-                        <div style="margin-right:16px;font-size:36px;">🥗</div>
-                        <div>
-                            <h2 style="margin:0;color:#28a745;font-size:18px;text-transform:uppercase;">
-                                Prontuário e Plano Alimentar
-                            </h2>
-                            <p style="margin:4px 0 0;color:#555;font-size:13px;">
-                                NutriSocial — Acompanhamento Clínico Individualizado
-                            </p>
-                            <p style="margin:2px 0 0;font-size:11px;color:#888;">
-                                Data de Emissão: ${dataAtual}
-                            </p>
-                        </div>
-                    </div>`;
-
-                // --- Identificação do paciente ---
-                const identificacao = `
-                    <div style="background:#f8f9fa;padding:14px;border-radius:8px;
-                                border:1px solid #ddd;margin-bottom:22px;">
-                        <h4 style="margin:0 0 10px;color:#333;font-size:14px;
-                                   border-bottom:1px solid #ccc;padding-bottom:5px;">
-                            Identificação do Paciente
-                        </h4>
-                        <table style="width:100%;font-size:12px;line-height:1.8;border-collapse:collapse;">
-                            <tr>
-                                <td width="50%"><b>Nome:</b> ${p.nome}</td>
-                                <td><b>Idade / Sexo:</b> ${p.idade || '-'} anos / ${p.sexo === 'M' ? 'Masculino' : 'Feminino'}</td>
-                            </tr>
-                            <tr>
-                                <td><b>Peso Atual:</b> ${p.peso || '-'} kg</td>
-                                <td><b>Altura:</b> ${p.altura || '-'} cm</td>
-                            </tr>
-                            <tr>
-                                <td><b>IMC:</b> ${imc}</td>
-                                <td><b>Taxa Metabólica Basal:</b> ${tmb}</td>
-                            </tr>
-                            <tr>
-                                <td colspan="2"><b>Objetivo Clínico:</b> ${p.objetivo || '-'}</td>
-                            </tr>
-                        </table>
-                    </div>`;
-
-                // --- Título da prescrição ---
-                let prescricao = `
-                    <h4 style="margin:0 0 14px;color:#333;font-size:14px;
-                               border-bottom:2px solid #28a745;padding-bottom:5px;">
-                        Prescrição Dietética
-                    </h4>`;
-
-                // --- Loop pelas refeições ---
+                let blocoRefeicoes = '';
                 dieta.forEach(ref => {
                     let tKcal=0, tCarb=0, tProt=0, tGord=0, tFibra=0, tSodio=0;
                     let linhas = '';
 
                     if (!ref.itens || ref.itens.length === 0) {
-                        linhas = `<tr><td colspan="8" style="padding:8px;color:#999;text-align:center;">
-                                    Nenhum alimento registrado.
-                                  </td></tr>`;
+                        linhas = `<tr><td colspan="8" class="vazio">Nenhum alimento registrado.</td></tr>`;
                     } else {
                         ref.itens.forEach(item => {
                             tKcal  += item.calcKcal;
@@ -471,120 +446,228 @@
                             tFibra += item.calcFibra;
                             tSodio += item.calcSodio;
                             linhas += `
-                                <tr style="border-bottom:1px solid #eee;">
-                                    <td style="padding:5px 6px;text-align:left;font-weight:bold;color:#444;">
-                                        ${item.nome}
-                                    </td>
-                                    <td style="padding:5px 6px;text-align:center;">${item.quantidade}</td>
-                                    <td style="padding:5px 6px;text-align:center;">${item.calcKcal.toFixed(1)}</td>
-                                    <td style="padding:5px 6px;text-align:center;">${item.calcCarb.toFixed(1)}</td>
-                                    <td style="padding:5px 6px;text-align:center;">${item.calcProt.toFixed(1)}</td>
-                                    <td style="padding:5px 6px;text-align:center;">${item.calcGord.toFixed(1)}</td>
-                                    <td style="padding:5px 6px;text-align:center;color:#28a745;">${item.calcFibra.toFixed(1)}</td>
-                                    <td style="padding:5px 6px;text-align:center;color:#dc3545;">${item.calcSodio.toFixed(1)}</td>
+                                <tr>
+                                    <td class="col-nome">${item.nome}</td>
+                                    <td class="num">${item.quantidade}</td>
+                                    <td class="num">${item.calcKcal.toFixed(1)}</td>
+                                    <td class="num">${item.calcCarb.toFixed(1)}</td>
+                                    <td class="num">${item.calcProt.toFixed(1)}</td>
+                                    <td class="num">${item.calcGord.toFixed(1)}</td>
+                                    <td class="num verde">${item.calcFibra.toFixed(1)}</td>
+                                    <td class="num vermelho">${item.calcSodio.toFixed(1)}</td>
                                 </tr>`;
                         });
                     }
 
-                    prescricao += `
-                        <div style="margin-bottom:18px;page-break-inside:avoid;">
-                            <h5 style="margin:0 0 6px;color:#fff;background:#28a745;
-                                       padding:6px 10px;border-radius:4px;font-size:13px;">
-                                ${ref.horario} — ${ref.nome}
-                            </h5>
-                            <table style="width:100%;border-collapse:collapse;font-size:11px;text-align:center;">
+                    blocoRefeicoes += `
+                        <div class="refeicao">
+                            <div class="refeicao-titulo">${ref.horario} — ${ref.nome}</div>
+                            <table>
                                 <thead>
-                                    <tr style="background:#eeeeee;border-bottom:2px solid #ccc;">
-                                        <th style="padding:5px 6px;text-align:left;">Alimento</th>
-                                        <th style="padding:5px 6px;">Qtd (g)</th>
-                                        <th style="padding:5px 6px;">Kcal</th>
-                                        <th style="padding:5px 6px;">Carb</th>
-                                        <th style="padding:5px 6px;">Prot</th>
-                                        <th style="padding:5px 6px;">Gord</th>
-                                        <th style="padding:5px 6px;color:#28a745;">Fibra</th>
-                                        <th style="padding:5px 6px;color:#dc3545;">Sódio</th>
+                                    <tr>
+                                        <th class="col-nome">Alimento</th>
+                                        <th class="num">Qtd (g)</th>
+                                        <th class="num">Kcal</th>
+                                        <th class="num">Carb</th>
+                                        <th class="num">Prot</th>
+                                        <th class="num">Gord</th>
+                                        <th class="num verde">Fibra</th>
+                                        <th class="num vermelho">Sódio</th>
                                     </tr>
                                 </thead>
                                 <tbody>${linhas}</tbody>
-                                <tfoot style="font-weight:bold;background:#f8f9fa;border-top:2px solid #ddd;">
+                                <tfoot>
                                     <tr>
-                                        <td colspan="2" style="padding:5px 6px;text-align:right;">
-                                            Totais da Refeição:
-                                        </td>
-                                        <td style="padding:5px 6px;">${tKcal.toFixed(1)}</td>
-                                        <td style="padding:5px 6px;">${tCarb.toFixed(1)}</td>
-                                        <td style="padding:5px 6px;">${tProt.toFixed(1)}</td>
-                                        <td style="padding:5px 6px;">${tGord.toFixed(1)}</td>
-                                        <td style="padding:5px 6px;color:#28a745;">${tFibra.toFixed(1)}</td>
-                                        <td style="padding:5px 6px;color:#dc3545;">${tSodio.toFixed(1)}</td>
+                                        <td colspan="2" class="total-label">Totais da Refeição:</td>
+                                        <td class="num">${tKcal.toFixed(1)}</td>
+                                        <td class="num">${tCarb.toFixed(1)}</td>
+                                        <td class="num">${tProt.toFixed(1)}</td>
+                                        <td class="num">${tGord.toFixed(1)}</td>
+                                        <td class="num verde">${tFibra.toFixed(1)}</td>
+                                        <td class="num vermelho">${tSodio.toFixed(1)}</td>
                                     </tr>
                                 </tfoot>
                             </table>
                         </div>`;
                 });
 
-                // --- Rodapé de assinaturas ---
-                const rodape = `
-                    <div style="margin-top:60px;display:flex;justify-content:space-between;
-                                text-align:center;font-size:12px;">
-                        <div style="width:45%;">
-                            <hr style="border:1px solid #333;margin-bottom:5px;">
-                            <b>${p.nome}</b><br>
-                            <span style="color:#666;">Assinatura do Paciente</span>
-                        </div>
-                        <div style="width:45%;">
-                            <hr style="border:1px solid #333;margin-bottom:5px;">
-                            <b>Nutricionista Responsável</b><br>
-                            <span style="color:#666;">CRN: _________</span>
-                        </div>
-                    </div>
-                    <div style="margin-top:24px;text-align:center;font-size:10px;color:#aaa;">
-                        Documento gerado eletronicamente pelo sistema NutriSocial.
-                    </div>`;
+                const htmlImpressao = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Plano Alimentar — ${p.nome}</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            color: #222;
+            background: #fff;
+            padding: 20mm 15mm;
+        }
+        .cabecalho {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 2px solid #28a745;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+        }
+        .cabecalho-icone { font-size: 32pt; }
+        .cabecalho h1 {
+            font-size: 14pt;
+            color: #28a745;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .cabecalho p { font-size: 9pt; color: #666; }
+        .paciente-box {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 12px 14px;
+            margin-bottom: 20px;
+        }
+        .paciente-box h2 {
+            font-size: 10pt;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            margin-bottom: 8px;
+        }
+        .paciente-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 20px;
+            font-size: 10pt;
+            line-height: 1.7;
+        }
+        .paciente-grid b { color: #444; }
+        .prescricao-titulo {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 2px solid #28a745;
+            padding-bottom: 4px;
+            margin-bottom: 14px;
+        }
+        .refeicao {
+            margin-bottom: 16px;
+            page-break-inside: avoid;
+        }
+        .refeicao-titulo {
+            background: #28a745;
+            color: #fff;
+            font-size: 10pt;
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-bottom: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+        }
+        thead tr { background: #eeeeee; border-bottom: 2px solid #ccc; }
+        th { padding: 5px 6px; font-weight: bold; color: #444; }
+        td { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; }
+        tfoot tr { background: #f8f9fa; border-top: 2px solid #ddd; font-weight: bold; }
+        .col-nome { text-align: left; }
+        th.col-nome { text-align: left; }
+        .num { text-align: right; }
+        .total-label { text-align: right; padding-right: 8px; }
+        .verde  { color: #1e7e34; }
+        .vermelho { color: #c82333; }
+        .vazio  { text-align: center; color: #999; padding: 8px; }
+        .assinaturas {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+            text-align: center;
+            font-size: 10pt;
+        }
+        .assinatura { width: 44%; }
+        .assinatura hr { border: 1px solid #555; margin-bottom: 4px; }
+        .rodape {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 8pt;
+            color: #aaa;
+        }
+        @media print {
+            body { padding: 0; }
+            .refeicao-titulo,
+            .paciente-box,
+            thead tr {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            @page { margin: 15mm; size: A4 portrait; }
+        }
+    </style>
+</head>
+<body>
 
-                wrapper.innerHTML = cabecalho + identificacao + prescricao + rodape;
-                document.body.appendChild(wrapper);
+    <div class="cabecalho">
+        <div class="cabecalho-icone">🥗</div>
+        <div>
+            <h1>Prontuário e Plano Alimentar</h1>
+            <p>NutriSocial — Acompanhamento Clínico Individualizado</p>
+            <p style="font-size:8pt;color:#999;margin-top:2px;">Data de Emissão: ${dataAtual}</p>
+        </div>
+    </div>
 
-                // --- Opções do html2pdf ---
-                const opcoesPDF = {
-                    margin:      [10, 10, 10, 10],
-                    filename:    `NutriSocial_Plano_${p.nome.replace(/\s+/g, '_')}.pdf`,
-                    image:       { type: 'jpeg', quality: 0.98 },
-                    html2canvas: {
-                        scale:       2,
-                        useCORS:     true,
-                        logging:     false,
-                        windowWidth: 794,       // largura fixa A4 — evita layout responsivo errado
-                        onclone:     (doc) => {
-                            // Garante que o elemento clonado está visível para o canvas
-                            const el = doc.getElementById('pdf-render-area');
-                            if (el) {
-                                el.style.position = 'relative';
-                                el.style.top      = '0';
-                                el.style.left     = '0';
-                            }
-                        }
-                    },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-                };
+    <div class="paciente-box">
+        <h2>Identificação do Paciente</h2>
+        <div class="paciente-grid">
+            <div><b>Nome:</b> ${p.nome}</div>
+            <div><b>Idade / Sexo:</b> ${p.idade || '-'} anos / ${p.sexo === 'M' ? 'Masculino' : 'Feminino'}</div>
+            <div><b>Peso Atual:</b> ${p.peso || '-'} kg</div>
+            <div><b>Altura:</b> ${p.altura || '-'} cm</div>
+            <div><b>IMC:</b> ${imc}</div>
+            <div><b>Taxa Metabólica Basal:</b> ${tmb}</div>
+            <div style="grid-column:1/-1"><b>Objetivo Clínico:</b> ${p.objetivo || '-'}</div>
+        </div>
+    </div>
 
-                html2pdf()
-                    .set(opcoesPDF)
-                    .from(wrapper)              // ← elemento DOM real, não string
-                    .save()
-                    .then(() => {
-                        document.body.removeChild(wrapper);  // limpa o DOM após gerar
-                        btnPDF.innerHTML = textoBtnOriginal;
-                        btnPDF.disabled  = false;
-                    })
-                    .catch((err) => {
-                        console.error('Erro ao gerar PDF:', err);
-                        document.body.removeChild(wrapper);
-                        btnPDF.innerHTML = textoBtnOriginal;
-                        btnPDF.disabled  = false;
-                        alert('Erro ao gerar o PDF. Verifique o console para detalhes.');
-                    });
+    <div class="prescricao-titulo">Prescrição Dietética</div>
+
+    ${blocoRefeicoes}
+
+    <div class="assinaturas">
+        <div class="assinatura">
+            <hr>
+            <b>${p.nome}</b><br>
+            <span style="color:#666">Assinatura do Paciente</span>
+        </div>
+        <div class="assinatura">
+            <hr>
+            <b>Nutricionista Responsável</b><br>
+            <span style="color:#666">CRN: _________</span>
+        </div>
+    </div>
+
+    <div class="rodape">
+        Documento gerado eletronicamente pelo sistema NutriSocial.
+    </div>
+
+    <script>
+        window.onload = function() { window.print(); };
+    <\/script>
+</body>
+</html>`;
+
+                const janela = window.open('', '_blank');
+                if (!janela) {
+                    alert("O browser bloqueou a abertura da nova aba.\nPermita popups para este site e tente novamente.");
+                    return;
+                }
+                janela.document.open();
+                janela.document.write(htmlImpressao);
+                janela.document.close();
 
             });
         });
@@ -595,10 +678,7 @@
             document.getElementById('btnSair').addEventListener('click', function(e) {
                 e.preventDefault();
                 if(confirm("Deseja realmente sair do sistema?")) {
-                    // Destrói as chaves do cofre do navegador
                     auth.limpar();
-                    
-                    // Redireciona para o login
                     window.location.href = "login.html";
                 }
             });
