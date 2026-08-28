@@ -1,19 +1,33 @@
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # =============================================================================
+# CARREGAMENTO AUTOMÁTICO DO .env
+# Funciona independentemente de onde o uvicorn é iniciado (raiz ou app/).
+# Em produção (Render), o .env não existe — as variáveis vêm do painel
+# do Render diretamente, então load_dotenv() simplesmente não encontra
+# nada e não faz diferença.
+# =============================================================================
+
+BASE_DIR = Path(__file__).resolve().parent.parent   # raiz do projeto (um nível acima de app/)
+load_dotenv(BASE_DIR / ".env")
+
+# =============================================================================
 # CONEXÃO COM O BANCO
-# A URL é lida da variável de ambiente DATABASE_URL (configurada no Render).
-# Nunca coloque credenciais diretamente no código.
+# A URL é lida da variável de ambiente DATABASE_URL — vinda do .env local
+# ou das variáveis configuradas no painel do Render em produção.
 # =============================================================================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     raise RuntimeError(
-        "Variável de ambiente DATABASE_URL não encontrada. "
-        "Configure-a no painel do Render (Environment > Add Environment Variable)."
+        "Variável de ambiente DATABASE_URL não encontrada.\n"
+        "→ Local: verifique se existe um arquivo .env na raiz do projeto.\n"
+        "→ Produção: configure no painel do Render (Environment > Add Environment Variable)."
     )
 
 engine = create_engine(DATABASE_URL)

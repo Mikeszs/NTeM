@@ -32,7 +32,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://ntem.vercel.app"],
+    allow_origins=[
+        "https://ntem.vercel.app",      # produção
+        "http://127.0.0.1:5500",        # desenvolvimento local — VS Code Live Server
+        "http://localhost:5500",
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
