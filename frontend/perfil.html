@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriSocial | Meu Perfil</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="theme.js"></script>
+</head>
+<body>
+
+    <div class="d-flex" id="wrapper">
+
+        <aside id="sidebar-wrapper" class="bg-white shadow-sm d-flex flex-column" style="min-height: 100vh;">
+            <div class="sidebar-heading text-center py-4 border-bottom">
+                <i class="fa-solid fa-leaf fs-3 me-2 logo-icon"></i>
+                <span class="fs-4 fw-bold logo-text">NT&M</span>
+            </div>
+
+            <div class="list-group list-group-flush my-3 flex-grow-1">
+                <a href="index.html" class="list-group-item list-group-item-action"><i class="fas fa-chart-line me-3"></i>Dashboard</a>
+                <a href="cadastro.html" class="list-group-item list-group-item-action"><i class="fas fa-user-plus me-3"></i>Cadastro & Anamnese</a>
+                <a href="antropometria.html" class="list-group-item list-group-item-action"><i class="fas fa-weight me-3"></i>Antropometria</a>
+                <a href="dieta.html" class="list-group-item list-group-item-action"><i class="fas fa-apple-alt me-3"></i>Plano Alimentar</a>
+            </div>
+
+            <div class="list-group list-group-flush mb-4 mt-auto">
+                <a href="perfil.html" class="list-group-item list-group-item-action active"><i class="fas fa-user-cog me-3"></i>Meu Perfil</a>
+                <a href="#" id="btnSair" class="list-group-item list-group-item-action text-danger fw-bold">
+                    <i class="fas fa-sign-out-alt me-3"></i>Sair do Sistema
+                </a>
+            </div>
+        </aside>
+
+        <main id="page-content-wrapper">
+            <nav class="navbar navbar-expand-lg navbar-light bg-transparent py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-bars fs-4 me-3" id="menu-toggle" role="button" aria-label="Alternar Menu"></i>
+                    <h2 class="fs-3 m-0 fw-bold title-text">Meu Perfil</h2>
+                </div>
+                <div class="ms-auto d-flex align-items-center gap-3">
+                    <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema claro/escuro" title="Alternar tema">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </nav>
+
+            <section class="container-fluid px-4 py-3" style="max-width: 700px;">
+
+                <!-- Dados da conta -->
+                <div class="card card-custom border-0 p-4 mb-4">
+                    <h4 class="fs-5 fw-bold mb-1 text-dark"><i class="fas fa-id-badge me-2 text-success"></i>Dados da Conta</h4>
+                    <p class="text-muted small mb-4">Altere seu nome e e-mail de acesso ao sistema.</p>
+
+                    <form id="formPerfil">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nome completo</label>
+                            <input type="text" id="perfilNome" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">E-mail</label>
+                            <input type="email" id="perfilEmail" class="form-control" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Função</label>
+                            <input type="text" id="perfilRole" class="form-control" disabled>
+                            <small class="text-muted">A função da conta só pode ser alterada por um administrador.</small>
+                        </div>
+                        <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" id="btnSalvarPerfil">
+                            <i class="fas fa-save me-2"></i>Salvar Alterações
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Troca de senha -->
+                <div class="card card-custom border-0 p-4 mb-4">
+                    <h4 class="fs-5 fw-bold mb-1 text-dark"><i class="fas fa-key me-2 text-success"></i>Alterar Senha</h4>
+                    <p class="text-muted small mb-4">Por segurança, é necessário informar a senha atual.</p>
+
+                    <form id="formSenha">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Senha atual</label>
+                            <input type="password" id="senhaAtual" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nova senha</label>
+                            <input type="password" id="senhaNova" class="form-control" minlength="6" required>
+                            <small class="text-muted">Mínimo de 6 caracteres.</small>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Confirmar nova senha</label>
+                            <input type="password" id="senhaConfirmar" class="form-control" minlength="6" required>
+                        </div>
+                        <button type="submit" class="btn btn-outline-success fw-bold rounded-pill px-4" id="btnSalvarSenha">
+                            <i class="fas fa-lock me-2"></i>Atualizar Senha
+                        </button>
+                    </form>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+
+    <script>
+        auth.exigir(); // qualquer usuário autenticado pode acessar seu próprio perfil
+
+        document.addEventListener("DOMContentLoaded", async function() {
+            const el = document.getElementById("wrapper");
+            document.getElementById("menu-toggle").addEventListener("click", () => el.classList.toggle("toggled"));
+
+            const formPerfil = document.getElementById('formPerfil');
+            const formSenha  = document.getElementById('formSenha');
+
+            // ── Carrega os dados atuais do usuário logado ──
+            try {
+                const resposta = await fetch(`${API_BASE}/perfil/me`, {
+                    headers: { "Authorization": `Bearer ${auth.token()}` }
+                });
+
+                if (resposta.status === 401) {
+                    auth.limpar();
+                    window.location.href = "login.html";
+                    return;
+                }
+                if (!resposta.ok) throw new Error("Falha ao carregar perfil");
+
+                const dados = await resposta.json();
+                document.getElementById('perfilNome').value  = dados.nome;
+                document.getElementById('perfilEmail').value = dados.email;
+                document.getElementById('perfilRole').value  =
+                    dados.role === 'profissional' ? 'Nutricionista / Profissional' : 'Paciente';
+
+            } catch (erro) {
+                console.error(erro);
+                alert("Não foi possível carregar seus dados. Tente recarregar a página.");
+            }
+
+            // ── Salvar nome/e-mail ──
+            formPerfil.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const btn = document.getElementById('btnSalvarPerfil');
+                const textoOriginal = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
+                btn.disabled = true;
+
+                try {
+                    const resposta = await fetch(`${API_BASE}/perfil/me`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${auth.token()}`
+                        },
+                        body: JSON.stringify({
+                            nome:  document.getElementById('perfilNome').value.trim(),
+                            email: document.getElementById('perfilEmail').value.trim(),
+                        })
+                    });
+
+                    const resultado = await resposta.json();
+
+                    if (resposta.ok) {
+                        // Atualiza o nome exibido na sessão local também
+                        auth.salvar(auth.token(), auth.role(), resultado.dados.nome);
+                        alert("✅ Perfil atualizado com sucesso!");
+                    } else {
+                        alert(`❌ ${resultado.detail || 'Erro ao atualizar perfil.'}`);
+                    }
+                } catch (erro) {
+                    alert("⚠️ Erro de conexão com o servidor.");
+                } finally {
+                    btn.innerHTML = textoOriginal;
+                    btn.disabled = false;
+                }
+            });
+
+            // ── Trocar senha ──
+            formSenha.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const nova       = document.getElementById('senhaNova').value;
+                const confirmar  = document.getElementById('senhaConfirmar').value;
+
+                if (nova !== confirmar) {
+                    return alert("❌ A nova senha e a confirmação não coincidem.");
+                }
+
+                const btn = document.getElementById('btnSalvarSenha');
+                const textoOriginal = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Atualizando...';
+                btn.disabled = true;
+
+                try {
+                    const resposta = await fetch(`${API_BASE}/perfil/senha`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${auth.token()}`
+                        },
+                        body: JSON.stringify({
+                            senha_atual: document.getElementById('senhaAtual').value,
+                            senha_nova:  nova,
+                        })
+                    });
+
+                    const resultado = await resposta.json();
+
+                    if (resposta.ok) {
+                        alert("✅ Senha alterada com sucesso!");
+                        formSenha.reset();
+                    } else {
+                        alert(`❌ ${resultado.detail || 'Erro ao alterar senha.'}`);
+                    }
+                } catch (erro) {
+                    alert("⚠️ Erro de conexão com o servidor.");
+                } finally {
+                    btn.innerHTML = textoOriginal;
+                    btn.disabled = false;
+                }
+            });
+        });
+
+        // ==========================================
+        // FUNÇÃO DE LOGOUT
+        // ==========================================
+        document.getElementById('btnSair').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (confirm("Deseja realmente sair do sistema?")) {
+                auth.limpar();
+                window.location.href = "login.html";
+            }
+        });
+    </script>
+</body>
+</html>
