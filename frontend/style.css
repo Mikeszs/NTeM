@@ -6,14 +6,53 @@
     --light-gray: #f4f7f6;       /* Fundo geral da aplicação */
     --white: #ffffff;
     --text-muted: #6c757d;
+
+    /* ── Tokens semânticos — usados pelos componentes abaixo.
+       No tema claro (padrão) eles apontam para as cores acima. ── */
+    --bg-app:        var(--light-gray);
+    --bg-surface:    var(--white);
+    --bg-sidebar:    var(--white);
+    --bg-hover:      var(--mint-light);
+    --text-primary:  #333333;
+    --text-secondary:var(--text-muted);
+    --border-color:  rgba(0, 0, 0, 0.08);
+    --shadow-color:  rgba(0, 0, 0, 0.06);
+    --input-bg:      var(--white);
+    --input-border:  #ced4da;
+}
+
+/* =============================================================
+   MODO ESCURO
+   Ativado via atributo data-theme="dark" na tag <html>,
+   controlado por theme.js. Sobrescreve apenas os tokens
+   semânticos — as cores de marca (mint-green) permanecem
+   as mesmas para manter a identidade visual.
+   ============================================================= */
+[data-theme="dark"] {
+    --bg-app:         #12181b;
+    --bg-surface:     #1b2327;
+    --bg-sidebar:     #161d20;
+    --bg-hover:       #223028;
+    --text-primary:   #e8eaed;
+    --text-secondary: #9aa4a8;
+    --border-color:   rgba(255, 255, 255, 0.08);
+    --shadow-color:   rgba(0, 0, 0, 0.35);
+    --input-bg:       #222c30;
+    --input-border:   #384347;
+
+    /* Verde-menta um pouco mais claro no escuro para manter contraste */
+    --mint-light: rgba(32, 201, 151, 0.16);
+    --dark-green: #6ee7b7;
 }
 
 body {
-    background-color: var(--light-gray);
+    background-color: var(--bg-app);
     font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    color: #333;
+    color: var(--text-primary);
     overflow-x: hidden;
+    transition: background-color 0.25s ease, color 0.25s ease;
 }
+
 
 /* ============================
    SIDEBAR (Menu Lateral)
@@ -26,8 +65,10 @@ body {
     min-height: 100vh;
     width: 250px;
     margin-left: -250px;
-    transition: margin 0.3s ease;
+    transition: margin 0.3s ease, background-color 0.25s ease;
     z-index: 1000;
+    background-color: var(--bg-sidebar) !important;
+    border-color: var(--border-color) !important;
 }
 
 /* Comportamento Toggle (Abrir/Fechar) */
@@ -51,19 +92,19 @@ body {
 .list-group-item {
     border: none;
     padding: 1rem 1.5rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     font-weight: 500;
     background-color: transparent;
     transition: all 0.2s ease-in-out;
 }
 
 .list-group-item:hover {
-    background-color: var(--mint-light);
+    background-color: var(--bg-hover);
     color: var(--dark-green);
 }
 
 .list-group-item.active {
-    background-color: var(--mint-light);
+    background-color: var(--bg-hover);
     color: var(--dark-green);
     border-right: 4px solid var(--mint-green);
     font-weight: 600;
@@ -92,13 +133,14 @@ body {
    ============================ */
 .card-custom {
     border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background-color: var(--bg-surface);
+    box-shadow: 0 4px 12px var(--shadow-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.25s ease;
 }
 
 .card-custom:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 8px 15px var(--shadow-color);
 }
 
 /* Caixas de Ícones nos Dashboards */
@@ -111,6 +153,107 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* ============================
+   MODO ESCURO — Bootstrap overrides
+   Bootstrap usa cores fixas em vários componentes; sobrescrevemos
+   os que aparecem nas telas do NutriSocial.
+   ============================ */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-control::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+[data-theme="dark"] .table {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .table-light,
+[data-theme="dark"] .table-light > th {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .bg-white {
+    background-color: var(--bg-surface) !important;
+}
+
+[data-theme="dark"] .bg-light {
+    background-color: var(--bg-hover) !important;
+}
+
+[data-theme="dark"] .text-dark {
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .text-muted {
+    color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .border,
+[data-theme="dark"] .border-bottom,
+[data-theme="dark"] .border-top,
+[data-theme="dark"] .border-secondary {
+    border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .modal-content {
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .dropdown-menu {
+    background-color: var(--bg-surface);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .dropdown-item {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+    background-color: var(--bg-hover);
+}
+
+/* ============================
+   BOTÃO DE ALTERNÂNCIA DE TEMA
+   ============================ */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.theme-toggle:hover {
+    background-color: var(--bg-hover);
+    color: var(--mint-green);
+    transform: scale(1.05);
+}
+
+.theme-toggle:active {
+    transform: scale(0.95);
 }
 
 /* ============================

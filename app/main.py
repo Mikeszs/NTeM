@@ -85,6 +85,17 @@ class UsuarioCadastro(BaseModel):
     senha: str
     role:  str
 
+class PerfilAtualizar(BaseModel):
+    """Dados que o próprio usuário pode alterar em sua conta."""
+    nome: str
+    email: str
+
+class SenhaAlterar(BaseModel):
+    """Troca de senha exige a senha atual — evita que alguém com a sessão
+    aberta em um computador desatendido mude a senha sem confirmar posse."""
+    senha_atual: str
+    senha_nova:  str
+
 class Token(BaseModel):
     access_token: str
     token_type:   str
@@ -205,6 +216,66 @@ async def login(
         "role":         usuario.role,
         "nome":         usuario.nome,
     }
+
+
+# --- PERFIL (auto-atendimento do usuário logado) ---
+# Resolve o problema de "esqueci a senha e o dev precisa mexer no banco":
+# qualquer usuário autenticado consegue atualizar seus próprios dados e
+# trocar a própria senha, sem precisar de intervenção manual.
+
+@app.get("/perfil/me")
+async def obter_meu_perfil(usuario_logado: Usuario = Depends(obter_usuario_atual)):
+    """Retorna os dados do usuário autenticado (para preencher a tela de perfil)."""
+    return {
+        "id":    usuario_logado.id,
+        "nome":  usuario_logado.nome,
+        "email": usuario_logado.email,
+        "role":  usuario_logado.role,
+    }
+
+
+@app.put("/perfil/me")
+async def atualizar_meu_perfil(
+    dados: PerfilAtualizar,
+    db: Session = Depends(get_db),
+    usuario_logado: Usuario = Depends(obter_usuario_atual),
+):
+    """Permite ao próprio usuário editar nome e e-mail da sua conta."""
+    # Impede trocar para um e-mail já usado por outra conta
+    if dados.email != usuario_logado.email:
+        existe = db.query(Usuario).filter(Usuario.email == dados.email).first()
+        if existe:
+            raise HTTPException(status_code=400, detail="Este e-mail já está em uso por outra conta.")
+
+    usuario_logado.nome  = dados.nome
+    usuario_logado.email = dados.email
+    db.commit()
+    db.refresh(usuario_logado)
+
+    return {
+        "status": "sucesso",
+        "mensagem": "Perfil atualizado com sucesso.",
+        "dados": {"nome": usuario_logado.nome, "email": usuario_logado.email, "role": usuario_logado.role},
+    }
+
+
+@app.put("/perfil/senha")
+async def alterar_minha_senha(
+    dados: SenhaAlterar,
+    db: Session = Depends(get_db),
+    usuario_logado: Usuario = Depends(obter_usuario_atual),
+):
+    """Troca a senha do usuário logado. Exige a senha atual como confirmação."""
+    if not verificar_senha(dados.senha_atual, usuario_logado.senha_hash):
+        raise HTTPException(status_code=401, detail="Senha atual incorreta.")
+
+    if len(dados.senha_nova) < 6:
+        raise HTTPException(status_code=400, detail="A nova senha deve ter pelo menos 6 caracteres.")
+
+    usuario_logado.senha_hash = obter_senha_hash(dados.senha_nova)
+    db.commit()
+
+    return {"status": "sucesso", "mensagem": "Senha alterada com sucesso."}
 
 
 # --- PACIENTES ---
@@ -399,3 +470,44 @@ async def obter_dieta_paciente(
         })
 
     return resultado
+
+
+# --- DASHBOARD ---
+
+@app.get("/dashboard/resumo")
+async def resumo_dashboard(
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(obter_usuario_atual),
+):
+    """
+    Métricas agregadas para o painel principal. Calculadas sob demanda
+    (sem tabela própria) — o volume de dados da aplicação é pequeno o
+    suficiente para isso ser rápido; se crescer muito, migrar para
+    contadores materializados.
+    """
+    total_pacientes = db.query(Paciente).count()
+
+    # Pacientes com pelo menos uma refeição cadastrada = "dieta elaborada"
+    pacientes_com_dieta = (
+        db.query(Refeicao.paciente_id).distinct().count()
+    )
+
+    # Distribuição por objetivo clínico, para o gráfico do dashboard
+    from sqlalchemy import func
+    objetivos_query = (
+        db.query(Paciente.objetivo, func.count(Paciente.id))
+        .group_by(Paciente.objetivo)
+        .all()
+    )
+    distribuicao_objetivos = [
+        {"objetivo": obj or "Não informado", "total": total}
+        for obj, total in objetivos_query
+    ]
+
+    return {
+        "total_pacientes":       total_pacientes,
+        "pacientes_com_dieta":   pacientes_com_dieta,
+        "pacientes_sem_dieta":   total_pacientes - pacientes_com_dieta,
+        "distribuicao_objetivos": distribuicao_objetivos,
+    }
+
