@@ -71,49 +71,201 @@
             cursor: pointer;
         }
         .theme-toggle-login:hover { color: #20c997; }
+
+        /* ══════════════════════════════════════════════════════════
+           LOADING: overlay de redirecionamento pós-login bem-sucedido
+           ══════════════════════════════════════════════════════════ */
+        .overlay-redirecionamento {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-app);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            z-index: 9999;
+            transition: opacity .2s ease;
+        }
+        .overlay-redirecionamento.ativo { display: flex; }
+        .overlay-spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid var(--border-color);
+            border-top-color: #20c997;
+            border-radius: 50%;
+            animation: girar .7s linear infinite;
+        }
+        @keyframes girar { to { transform: rotate(360deg); } }
+        .overlay-texto {
+            color: var(--text-secondary);
+            font-size: .95rem;
+            text-align: center;
+            max-width: 280px;
+        }
+
+        /* Mensagem progressiva de "servidor iniciando" dentro do card */
+        #mensagemColdStart {
+            display: none;
+            font-size: .8rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+        #mensagemColdStart.visivel { display: block; }
+
+        /* Spinner inline no botão, reaproveitável em qualquer form */
+        .spinner-btn {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,.5);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: girar .6s linear infinite;
+            margin-right: 8px;
+            vertical-align: -2px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="card-login">
+    <!-- ══════════════════════════════════════════════════════════
+         OVERLAY DE TRANSIÇÃO — aparece após login bem-sucedido,
+         cobrindo o "salto" até o dashboard terminar de carregar.
+         ══════════════════════════════════════════════════════════ -->
+    <div class="overlay-redirecionamento" id="overlayRedirecionamento">
+        <div class="overlay-spinner"></div>
+        <div class="overlay-texto">Entrando no NutriSocial…</div>
+    </div>
+
+    <div class="card-login" id="cardLogin">
         <button class="theme-toggle-login" id="themeToggle" aria-label="Alternar tema" title="Alternar tema">
             <i class="fas fa-moon"></i>
         </button>
 
-        <div class="text-center mb-4">
-            <h3 class="fw-bold text-success"><i class="fa-solid fa-leaf me-2"></i>NutriSocial</h3>
-            <p class="text-muted">Acesse a plataforma clínica</p>
+        <!-- ── VISÃO: LOGIN ── -->
+        <div id="visaoLogin">
+            <div class="text-center mb-4">
+                <h3 class="fw-bold text-success"><i class="fa-solid fa-leaf me-2"></i>NutriSocial</h3>
+                <p class="text-muted">Acesse a plataforma clínica</p>
+            </div>
+
+            <form id="formLogin">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">E-mail</label>
+                    <input type="email" id="email" class="form-control" placeholder="exemplo@email.com" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label fw-semibold">Senha</label>
+                    <input type="password" id="senha" class="form-control" placeholder="••••••••" required>
+                </div>
+                <div class="text-end mb-4">
+                    <a href="#" class="small text-muted" id="linkEsqueciSenha">Esqueci minha senha</a>
+                </div>
+                <button type="submit" class="btn btn-success w-100 fw-bold py-2 rounded-pill" id="btnLogin">Entrar no Sistema</button>
+                <div id="mensagemColdStart">
+                    <i class="fas fa-clock me-1"></i>
+                    O servidor está iniciando — isso pode levar até 1 minuto na primeira vez do dia.
+                </div>
+            </form>
         </div>
 
-        <form id="formLogin">
-            <div class="mb-3">
-                <label class="form-label fw-semibold">E-mail</label>
-                <input type="email" id="email" class="form-control" placeholder="exemplo@email.com" required>
+        <!-- ── VISÃO: ESQUECI MINHA SENHA (oculta por padrão) ── -->
+        <div id="visaoEsqueciSenha" style="display:none;">
+            <div class="text-center mb-4">
+                <h3 class="fw-bold text-success"><i class="fas fa-key me-2"></i>Redefinir Senha</h3>
+                <p class="text-muted small">Informe seu e-mail cadastrado. Enviaremos um link para você criar uma nova senha.</p>
             </div>
-            <div class="mb-2">
-                <label class="form-label fw-semibold">Senha</label>
-                <input type="password" id="senha" class="form-control" placeholder="••••••••" required>
-            </div>
-            <div class="text-end mb-4">
-                <a href="#" class="small text-muted" id="linkEsqueciSenha">Esqueci minha senha</a>
-            </div>
-            <button type="submit" class="btn btn-success w-100 fw-bold py-2 rounded-pill">Entrar no Sistema</button>
-        </form>
+
+            <form id="formEsqueciSenha">
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">E-mail</label>
+                    <input type="email" id="emailReset" class="form-control" placeholder="exemplo@email.com" required>
+                </div>
+                <button type="submit" class="btn btn-success w-100 fw-bold py-2 rounded-pill mb-2" id="btnEnviarReset">
+                    Enviar link de redefinição
+                </button>
+                <button type="button" class="btn btn-link w-100 text-muted" id="btnVoltarLogin">
+                    ← Voltar para o login
+                </button>
+            </form>
+
+            <div id="mensagemReset" class="alert alert-success mt-3 text-center small" style="display:none;"></div>
+        </div>
     </div>
 
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script>
-        // Recuperação de senha por e-mail: pendente de decisão do serviço
-        // de envio (Resend/SendGrid/etc). Por ora, orienta o usuário a
-        // contatar o administrador — evita um link morto sem explicação.
+        // ── Alternância entre as duas visões do card ──
+        const visaoLogin         = document.getElementById('visaoLogin');
+        const visaoEsqueciSenha  = document.getElementById('visaoEsqueciSenha');
+        const mensagemReset      = document.getElementById('mensagemReset');
+
         document.getElementById('linkEsqueciSenha').addEventListener('click', function(e) {
             e.preventDefault();
-            alert("A recuperação automática de senha por e-mail está sendo implementada.\nPor enquanto, entre em contato com o administrador do sistema.");
+            visaoLogin.style.display = 'none';
+            visaoEsqueciSenha.style.display = 'block';
+            mensagemReset.style.display = 'none';
+        });
+
+        document.getElementById('btnVoltarLogin').addEventListener('click', function() {
+            visaoEsqueciSenha.style.display = 'none';
+            visaoLogin.style.display = 'block';
+        });
+
+        // ── Envio da solicitação de reset ──
+        document.getElementById('formEsqueciSenha').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('btnEnviarReset');
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+            btn.disabled = true;
+
+            try {
+                const resposta = await fetch(`${API_BASE}/auth/esqueci-senha`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: document.getElementById('emailReset').value.trim() })
+                });
+
+                const resultado = await resposta.json();
+
+                // A API sempre responde com sucesso genérico, exista ou não o
+                // e-mail — isso é proposital (proteção contra enumeração).
+                document.getElementById('formEsqueciSenha').style.display = 'none';
+                mensagemReset.textContent = resultado.mensagem || "Se este e-mail estiver cadastrado, você receberá um link em instantes.";
+                mensagemReset.style.display = 'block';
+
+            } catch (erro) {
+                alert("⚠️ Erro de conexão com o servidor. Tente novamente em instantes.");
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+            }
         });
 
         document.getElementById('formLogin').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            const btn                = document.getElementById('btnLogin');
+            const mensagemColdStart  = document.getElementById('mensagemColdStart');
+            const overlay            = document.getElementById('overlayRedirecionamento');
+            const textoOriginalBtn   = btn.innerHTML;
+
+            // ── Estado de carregamento: botão desabilitado + spinner ──
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-btn"></span>Entrando…';
+
+            // Se a resposta demorar mais que 4s, é provável que o back-end
+            // esteja "acordando" do repouso do plano gratuito (Render).
+            // Avisamos o usuário para não parecer que a tela travou.
+            const timeoutAvisoColdStart = setTimeout(() => {
+                mensagemColdStart.classList.add('visivel');
+                btn.innerHTML = '<span class="spinner-btn"></span>Aguardando o servidor…';
+            }, 4000);
 
             // O FastAPI espera os dados de login no formato URL-Encoded (Form Data)
             const formData = new URLSearchParams();
@@ -127,21 +279,34 @@
                     body: formData
                 });
 
+                clearTimeout(timeoutAvisoColdStart);
+
                 if (resposta.ok) {
                     const dadosAuth = await resposta.json();
-
-                    // Salva a sessão via módulo central (sessionStorage, sem expor em texto puro)
                     auth.salvar(dadosAuth.access_token, dadosAuth.role, dadosAuth.nome);
 
                     if (dadosAuth.role === 'profissional') {
+                        // ── Overlay de transição: cobre o salto até o dashboard,
+                        // em vez da tela de login simplesmente "sumir" no vazio.
+                        overlay.classList.add('ativo');
                         window.location.href = "index.html";
                     } else {
+                        btn.disabled = false;
+                        btn.innerHTML = textoOriginalBtn;
+                        mensagemColdStart.classList.remove('visivel');
                         alert(`Olá ${dadosAuth.nome}! A área do paciente estará disponível em breve.`);
                     }
                 } else {
+                    btn.disabled = false;
+                    btn.innerHTML = textoOriginalBtn;
+                    mensagemColdStart.classList.remove('visivel');
                     alert("❌ Credenciais inválidas. Verifique seu e-mail e senha.");
                 }
             } catch (erro) {
+                clearTimeout(timeoutAvisoColdStart);
+                btn.disabled = false;
+                btn.innerHTML = textoOriginalBtn;
+                mensagemColdStart.classList.remove('visivel');
                 alert("⚠️ Erro de conexão com o servidor de autenticação.");
             }
         });

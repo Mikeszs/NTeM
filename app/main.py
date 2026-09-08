@@ -1,5 +1,8 @@
 import os
 import json
+import secrets
+import hashlib
+import httpx
 from datetime import datetime, timedelta
 from typing import List
 
@@ -64,6 +67,71 @@ oauth2_scheme  = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 # =============================================================================
+# CONFIGURAÇÃO DO RESEND (envio de e-mail)
+# =============================================================================
+
+RESEND_API_KEY   = os.getenv("RESEND_API_KEY")
+RESEND_FROM      = os.getenv("RESEND_FROM_EMAIL", "NutriSocial <onboarding@resend.dev>")
+FRONTEND_URL     = os.getenv("FRONTEND_URL", "https://ntem.vercel.app")
+
+# Tempo de validade do link de redefinição de senha
+RESET_TOKEN_EXPIRE_MINUTES = 30
+
+
+async def enviar_email_redefinicao(destinatario: str, nome: str, token_bruto: str):
+    """
+    Envia o e-mail de redefinição de senha via API do Resend.
+    Falhas de envio são logadas mas NUNCA propagadas ao chamador —
+    a rota que chama esta função sempre responde com sucesso genérico,
+    para não revelar se o e-mail existe na base (proteção contra
+    enumeração de contas).
+    """
+    if not RESEND_API_KEY:
+        print("⚠️  RESEND_API_KEY não configurada — e-mail de reset NÃO enviado.")
+        return
+
+    link_reset = f"{FRONTEND_URL}/redefinir-senha.html?token={token_bruto}"
+
+    html_corpo = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+        <h2 style="color: #0f5132;">🥗 NutriSocial</h2>
+        <p>Olá, {nome},</p>
+        <p>Recebemos uma solicitação para redefinir a senha da sua conta.</p>
+        <p>
+            <a href="{link_reset}"
+               style="display:inline-block; background:#20c997; color:#fff; padding:12px 24px;
+                      border-radius:24px; text-decoration:none; font-weight:bold;">
+                Redefinir minha senha
+            </a>
+        </p>
+        <p style="color:#6c757d; font-size:13px;">
+            Este link expira em {RESET_TOKEN_EXPIRE_MINUTES} minutos.
+            Se você não solicitou essa alteração, pode ignorar este e-mail com segurança.
+        </p>
+    </div>
+    """
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resposta = await client.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+                json={
+                    "from":    RESEND_FROM,
+                    "to":      [destinatario],
+                    "subject": "Redefinição de senha — NutriSocial",
+                    "html":    html_corpo,
+                },
+            )
+            if resposta.status_code >= 300:
+                print(f"⚠️  Resend retornou erro {resposta.status_code}: {resposta.text}")
+    except Exception as e:
+        # Nunca deixamos uma falha de e-mail derrubar a rota ou vazar
+        # informação sobre a existência da conta.
+        print(f"⚠️  Falha ao enviar e-mail via Resend: {e}")
+
+
+# =============================================================================
 # DEPENDÊNCIA: conexão com o banco
 # =============================================================================
 
@@ -95,6 +163,13 @@ class SenhaAlterar(BaseModel):
     aberta em um computador desatendido mude a senha sem confirmar posse."""
     senha_atual: str
     senha_nova:  str
+
+class SolicitarReset(BaseModel):
+    email: str
+
+class RedefinirSenha(BaseModel):
+    token:      str
+    senha_nova: str
 
 class Token(BaseModel):
     access_token: str
@@ -216,6 +291,67 @@ async def login(
         "role":         usuario.role,
         "nome":         usuario.nome,
     }
+
+
+# --- RECUPERAÇÃO DE SENHA ---
+
+@app.post("/auth/esqueci-senha")
+async def solicitar_reset_senha(
+    dados: SolicitarReset,
+    db: Session = Depends(get_db),
+):
+    """
+    Inicia o fluxo de redefinição de senha.
+
+    SEMPRE retorna a mesma mensagem de sucesso, exista o e-mail ou não —
+    isso é intencional e evita que alguém descubra quais e-mails estão
+    cadastrados no sistema testando essa rota (enumeração de contas).
+    """
+    mensagem_padrao = {
+        "mensagem": "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha."
+    }
+
+    usuario = db.query(Usuario).filter(Usuario.email == dados.email).first()
+    if not usuario:
+        return mensagem_padrao
+
+    # Gera um token aleatório e criptograficamente seguro.
+    # O valor BRUTO vai só no e-mail; no banco salvamos apenas o hash.
+    token_bruto = secrets.token_urlsafe(32)
+    token_hash  = hashlib.sha256(token_bruto.encode()).hexdigest()
+
+    usuario.reset_token_hash   = token_hash
+    usuario.reset_token_expira = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
+    db.commit()
+
+    await enviar_email_redefinicao(usuario.email, usuario.nome, token_bruto)
+
+    return mensagem_padrao
+
+
+@app.post("/auth/redefinir-senha")
+async def redefinir_senha(
+    dados: RedefinirSenha,
+    db: Session = Depends(get_db),
+):
+    """Valida o token recebido por e-mail e efetiva a nova senha."""
+    if len(dados.senha_nova) < 6:
+        raise HTTPException(status_code=400, detail="A nova senha deve ter pelo menos 6 caracteres.")
+
+    token_hash = hashlib.sha256(dados.token.encode()).hexdigest()
+
+    usuario = db.query(Usuario).filter(Usuario.reset_token_hash == token_hash).first()
+
+    if not usuario or not usuario.reset_token_expira or usuario.reset_token_expira < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Link inválido ou expirado. Solicite uma nova redefinição.")
+
+    usuario.senha_hash = obter_senha_hash(dados.senha_nova)
+    # Invalida o token imediatamente após o uso — não pode ser reaproveitado
+    usuario.reset_token_hash   = None
+    usuario.reset_token_expira = None
+    db.commit()
+
+    return {"mensagem": "Senha redefinida com sucesso. Você já pode fazer login."}
 
 
 # --- PERFIL (auto-atendimento do usuário logado) ---

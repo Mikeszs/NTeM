@@ -63,6 +63,45 @@
                     </div>
                 </div>
 
+                <!-- ══════════════════════════════════════════════════════════
+                     PAINEL TOTALIZADOR DO DIA
+                     Soma de todas as refeições cadastradas no plano atual.
+                     Atualizado automaticamente sempre que renderizarDieta()
+                     é chamada (adicionar/remover alimento ou refeição).
+                     ══════════════════════════════════════════════════════════ -->
+                <div id="painelTotaisDia" class="card card-custom border-0 p-3 mb-4 shadow-sm" style="background-color: var(--mint-light); display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
+                        <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-calculator me-2 text-success"></i>Totalizador do Plano Alimentar (Dia Completo)</h6>
+                        <small id="totalComparativoTMB" class="text-muted"></small>
+                    </div>
+                    <div class="row g-2 text-center">
+                        <div class="col-4 col-md">
+                            <div class="fs-4 fw-bold text-primary" id="totalDiaKcal">0</div>
+                            <small class="text-muted">Kcal</small>
+                        </div>
+                        <div class="col-4 col-md">
+                            <div class="fs-5 fw-bold text-dark" id="totalDiaCarb">0</div>
+                            <small class="text-muted">Carb (g)</small>
+                        </div>
+                        <div class="col-4 col-md">
+                            <div class="fs-5 fw-bold text-dark" id="totalDiaProt">0</div>
+                            <small class="text-muted">Prot (g)</small>
+                        </div>
+                        <div class="col-4 col-md">
+                            <div class="fs-5 fw-bold text-dark" id="totalDiaGord">0</div>
+                            <small class="text-muted">Gord (g)</small>
+                        </div>
+                        <div class="col-4 col-md">
+                            <div class="fs-5 fw-bold text-success" id="totalDiaFibra">0</div>
+                            <small class="text-muted">Fibra (g)</small>
+                        </div>
+                        <div class="col-4 col-md">
+                            <div class="fs-5 fw-bold text-danger" id="totalDiaSodio">0</div>
+                            <small class="text-muted">Sódio (mg)</small>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="refeicoes-container"></div>
 
                 <div class="d-flex justify-content-between mb-5 mt-4 flex-wrap gap-2">
@@ -336,7 +375,75 @@
                     `;
                     containerRefeicoes.appendChild(card);
                 });
+
+                atualizarPainelTotaisDia();
             };
+
+            // ──────────────────────────────────────────────────────────
+            // PAINEL TOTALIZADOR DO DIA
+            // Soma os valores de TODOS os itens de TODAS as refeições
+            // já cadastradas na dieta atual (não apenas uma refeição).
+            // ──────────────────────────────────────────────────────────
+            function calcularTotaisDia() {
+                const totais = { kcal: 0, carb: 0, prot: 0, gord: 0, fibra: 0, sodio: 0 };
+                dieta.forEach(refeicao => {
+                    refeicao.itens.forEach(item => {
+                        totais.kcal  += item.calcKcal  || 0;
+                        totais.carb  += item.calcCarb  || 0;
+                        totais.prot  += item.calcProt  || 0;
+                        totais.gord  += item.calcGord  || 0;
+                        totais.fibra += item.calcFibra || 0;
+                        totais.sodio += item.calcSodio || 0;
+                    });
+                });
+                return totais;
+            }
+
+            /**
+             * Calcula a Taxa Metabólica Basal do paciente ativo (fórmula de
+             * Harris-Benedict), reaproveitando a mesma lógica usada na
+             * geração do PDF, para comparar a dieta montada com a meta
+             * calórica do paciente.
+             */
+            function calcularTMBPaciente(p) {
+                if (!p || !p.peso || !p.altura || !p.idade) return null;
+                const base = p.sexo === 'M'
+                    ? 66.5 + (13.75 * p.peso) + (5.003 * p.altura) - (6.75 * p.idade)
+                    : 655.1 + (9.563 * p.peso) + (1.85 * p.altura) - (4.676 * p.idade);
+                return Math.round(base);
+            }
+
+            function atualizarPainelTotaisDia() {
+                const painel = document.getElementById('painelTotaisDia');
+
+                // Sem refeições com pelo menos um item, mantém o painel oculto
+                const temAlgumItem = dieta.some(r => r.itens.length > 0);
+                if (!pacienteIdAtivo || !temAlgumItem) {
+                    painel.style.display = 'none';
+                    return;
+                }
+                painel.style.display = 'block';
+
+                const t = calcularTotaisDia();
+                document.getElementById('totalDiaKcal').textContent  = t.kcal.toFixed(0);
+                document.getElementById('totalDiaCarb').textContent  = t.carb.toFixed(1);
+                document.getElementById('totalDiaProt').textContent  = t.prot.toFixed(1);
+                document.getElementById('totalDiaGord').textContent  = t.gord.toFixed(1);
+                document.getElementById('totalDiaFibra').textContent = t.fibra.toFixed(1);
+                document.getElementById('totalDiaSodio').textContent = t.sodio.toFixed(0);
+
+                // Comparativo com a Taxa Metabólica Basal, quando o paciente
+                // tiver peso/altura/idade cadastrados na antropometria.
+                const p = listaPacientes.find(pac => pac.id === pacienteIdAtivo);
+                const tmb = calcularTMBPaciente(p);
+                const comparativo = document.getElementById('totalComparativoTMB');
+                if (tmb) {
+                    const percentual = Math.round((t.kcal / tmb) * 100);
+                    comparativo.textContent = `Meta (TMB): ${tmb} kcal — dieta atual em ${percentual}% da TMB`;
+                } else {
+                    comparativo.textContent = '';
+                }
+            }
 
             window.adicionarAlimento = function(idRefeicao) {
                 const select = document.getElementById(`select-alimento-${idRefeicao}`);
@@ -441,6 +548,9 @@
                 const dataAtual = new Date().toLocaleDateString('pt-BR');
 
                 let blocoRefeicoes = '';
+                // Acumuladores do TOTAL DO DIA — somam através de todas as refeições
+                let diaKcal = 0, diaCarb = 0, diaProt = 0, diaGord = 0, diaFibra = 0, diaSodio = 0;
+
                 dieta.forEach(ref => {
                     let tKcal=0, tCarb=0, tProt=0, tGord=0, tFibra=0, tSodio=0;
                     let linhas = '';
@@ -468,6 +578,10 @@
                                 </tr>`;
                         });
                     }
+
+                    // Acumula no total geral do dia
+                    diaKcal  += tKcal;  diaCarb  += tCarb;  diaProt += tProt;
+                    diaGord  += tGord;  diaFibra += tFibra; diaSodio += tSodio;
 
                     blocoRefeicoes += `
                         <div class="refeicao">
@@ -500,6 +614,33 @@
                             </table>
                         </div>`;
                 });
+
+                // ── Bloco HTML do painel totalizador do dia inteiro ──
+                const blocoTotalDia = `
+                    <div class="total-dia">
+                        <div class="total-dia-titulo">Totalizador do Plano Alimentar (Dia Completo)</div>
+                        <table class="tabela-total-dia">
+                            <tr>
+                                <td class="td-label">Calorias</td>
+                                <td class="td-valor destaque">${diaKcal.toFixed(0)} kcal</td>
+                                <td class="td-label">Fibras</td>
+                                <td class="td-valor verde">${diaFibra.toFixed(1)} g</td>
+                            </tr>
+                            <tr>
+                                <td class="td-label">Carboidratos</td>
+                                <td class="td-valor">${diaCarb.toFixed(1)} g</td>
+                                <td class="td-label">Sódio</td>
+                                <td class="td-valor vermelho">${diaSodio.toFixed(0)} mg</td>
+                            </tr>
+                            <tr>
+                                <td class="td-label">Proteínas</td>
+                                <td class="td-valor">${diaProt.toFixed(1)} g</td>
+                                <td class="td-label">Gorduras</td>
+                                <td class="td-valor">${diaGord.toFixed(1)} g</td>
+                            </tr>
+                        </table>
+                    </div>`;
+
 
                 const htmlImpressao = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -601,6 +742,32 @@
         }
         .assinatura { width: 44%; }
         .assinatura hr { border: 1px solid #555; margin-bottom: 4px; }
+
+        /* ── Painel Totalizador do Dia (impressão) ── */
+        .total-dia {
+            margin-top: 24px;
+            border: 2px solid #28a745;
+            border-radius: 6px;
+            padding: 12px 16px;
+            page-break-inside: avoid;
+        }
+        .total-dia-titulo {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #28a745;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .tabela-total-dia { width: 100%; border-collapse: collapse; }
+        .tabela-total-dia td { border: none; padding: 5px 8px; font-size: 10pt; }
+        .td-label { color: #666; width: 20%; }
+        .td-valor { font-weight: bold; color: #222; width: 30%; }
+        .td-valor.destaque { font-size: 13pt; color: #28a745; }
+        .td-valor.verde { color: #1e7e34; }
+        .td-valor.vermelho { color: #c82333; }
+
         .rodape {
             margin-top: 24px;
             text-align: center;
@@ -611,6 +778,7 @@
             body { padding: 0; }
             .refeicao-titulo,
             .paciente-box,
+            .total-dia,
             thead tr {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -646,6 +814,8 @@
     <div class="prescricao-titulo">Prescrição Dietética</div>
 
     ${blocoRefeicoes}
+
+    ${blocoTotalDia}
 
     <div class="assinaturas">
         <div class="assinatura">

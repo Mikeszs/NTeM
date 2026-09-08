@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # =============================================================================
@@ -98,3 +98,10 @@ class Usuario(Base):
     email       = Column(String, unique=True, index=True, nullable=False)
     senha_hash  = Column(String, nullable=False)
     role        = Column(String, default="paciente")  # 'profissional' ou 'paciente'
+
+    # --- Recuperação de senha ---
+    # Armazenamos apenas o HASH do token, nunca o valor original.
+    # Isso segue a mesma lógica de nunca guardar senha em texto puro:
+    # se o banco vazar, os tokens de reset não são reutilizáveis.
+    reset_token_hash    = Column(String,   nullable=True)
+    reset_token_expira  = Column(DateTime, nullable=True)
