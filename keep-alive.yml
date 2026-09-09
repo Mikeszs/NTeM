@@ -1,0 +1,40 @@
+name: Keep Render Alive
+
+# ═══════════════════════════════════════════════════════════════════
+# Mantém o backend do Render "acordado", evitando o cold start de
+# 30-60 segundos que ocorre após 15 minutos de inatividade no plano
+# gratuito. Faz uma requisição leve à rota raiz da API a cada 14
+# minutos — sempre antes do limite de 15 min que dispara o repouso.
+#
+# Custo: zero (GitHub Actions oferece minutos gratuitos de sobra
+# para uma tarefa tão leve como esta, mesmo em repositórios privados).
+#
+# Limitação conhecida: o Render pode alterar esta política a
+# qualquer momento; este workflow é um paliativo, não uma garantia
+# permanente. A solução definitiva sem custo continua sendo a
+# combinação de loading states (já implementada) + aceitar a
+# ocasional espera na primeira visita do dia.
+# ═══════════════════════════════════════════════════════════════════
+
+on:
+  schedule:
+    # Executa a cada 14 minutos, todos os dias.
+    # Sintaxe cron: minuto hora dia mês dia-da-semana
+    - cron: '*/14 * * * *'
+
+  # Permite disparar manualmente pela aba "Actions" do GitHub,
+  # útil para testar se o workflow está funcionando sem esperar o cron.
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fazer requisição de aquecimento ao backend
+        run: |
+          echo "Pingando o backend em $(date)"
+          curl --silent --show-error --fail \
+               --max-time 70 \
+               https://ntandm.onrender.com/ \
+               && echo "✅ Backend respondeu normalmente." \
+               || echo "⚠️ Backend não respondeu dentro do tempo limite (pode estar em cold start)."
