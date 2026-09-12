@@ -43,6 +43,14 @@
     /* Verde-menta um pouco mais claro no escuro para manter contraste */
     --mint-light: rgba(32, 201, 151, 0.16);
     --dark-green: #6ee7b7;
+
+    /* Correção: bug conhecido do Bootstrap 5.3 (--bs-card-color ausente,
+       issue twbs/bootstrap #38852). Sem isso, texto dentro de .card
+       fica preto fixo, invisível no fundo escuro. */
+    --bs-body-color:     var(--text-primary);
+    --bs-card-color:     var(--text-primary);
+    --bs-heading-color:  var(--text-primary);
+    --bs-emphasis-color: var(--text-primary);
 }
 
 body {
@@ -227,6 +235,25 @@ body {
 
 [data-theme="dark"] .dropdown-item:hover {
     background-color: var(--bg-hover);
+}
+
+/* Reforço direto: garante legibilidade de qualquer texto "puro"
+   (sem classe de cor própria) no modo escuro — títulos, labels de
+   formulário e parágrafos são os casos mais comuns que dependem de
+   herança de cor e que variáveis internas do Bootstrap podem quebrar. */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] label,
+[data-theme="dark"] .form-label,
+[data-theme="dark"] .card,
+[data-theme="dark"] .card-body,
+[data-theme="dark"] .card-title,
+[data-theme="dark"] .card-text {
+    color: var(--text-primary) !important;
 }
 
 /* ============================

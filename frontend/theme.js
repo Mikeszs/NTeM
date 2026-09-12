@@ -4,17 +4,18 @@
  * Carregar este script no <head>, ANTES do CSS terminar de aplicar,
  * para evitar o "flash" de tela clara antes de escurecer.
  *
- * Como usar em cada página:
- *   1. No <head>, logo após o <link> do style.css:
- *      <script src="theme.js"></script>
+ * IMPORTANTE: este script ativa DOIS atributos ao mesmo tempo:
+ *   - data-theme="dark"     → nosso sistema de cores customizado
+ *   - data-bs-theme="dark"  → o modo escuro NATIVO do Bootstrap 5.3
  *
- *   2. Em algum lugar do HTML (normalmente no header/navbar):
- *      <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
- *          <i class="fas fa-moon"></i>
- *      </button>
- *
- *   3. Nada mais é necessário — este script encontra o botão sozinho
- *      (se existir) e liga o evento de clique automaticamente.
+ * Sem o segundo atributo, o Bootstrap nunca ativa suas próprias
+ * variáveis internas de dark mode (--bs-heading-color,
+ * --bs-form-label-color, --bs-card-color, e várias outras que não
+ * dá pra prever todas manualmente). Isso causava o bug de títulos,
+ * labels e números aparecerem em preto fixo mesmo no modo escuro,
+ * pois cada correção pontual só resolvia UM componente por vez.
+ * Ativando o data-bs-theme junto, o Bootstrap corrige TODOS os
+ * seus próprios componentes de uma vez, de forma nativa.
  */
 
 (() => {
@@ -23,10 +24,15 @@
     /** Aplica o tema salvo (ou claro, por padrão) imediatamente. */
     function aplicarTemaSalvo() {
         const salvo = localStorage.getItem(CHAVE_TEMA);
-        // Preferência salva > preferência do sistema operacional > claro
         const preferido = salvo || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-theme', preferido);
+        aplicarAtributos(preferido);
         return preferido;
+    }
+
+    /** Seta os dois atributos de tema ao mesmo tempo (nosso + nativo do Bootstrap). */
+    function aplicarAtributos(tema) {
+        document.documentElement.setAttribute('data-theme', tema);
+        document.documentElement.setAttribute('data-bs-theme', tema);
     }
 
     // Aplica IMEDIATAMENTE — antes do resto do HTML renderizar,
@@ -42,7 +48,7 @@
 
     function alternarTema() {
         temaAtual = temaAtual === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', temaAtual);
+        aplicarAtributos(temaAtual);
         localStorage.setItem(CHAVE_TEMA, temaAtual);
         atualizarIconeBotao(document.getElementById('themeToggle'));
     }
