@@ -13,23 +13,23 @@ O **NutriSocial** é uma plataforma de gestão clínica e prescrição dietétic
 
 ## 🎯 Objetivo e Contexto Social
 
-Antes do NutriSocial, o atendimento filantrópico sofria com gargalos operacionais: o uso de Formulários do Google dispersos, cálculos manuais de metabolismo e consultas morosas a PDFs de centenas de páginas da Tabela TACO[cite: 12]. Alternativas comerciais (como o WebDiet) mostraram-se economicamente inviáveis para um projeto universitário e social, limitando o plano gratuito a apenas 5 interações[cite: 12].
+Antes do NutriSocial, o atendimento filantrópico sofria com gargalos operacionais: o uso de Formulários do Google dispersos, cálculos manuais de metabolismo e consultas morosas a PDFs de centenas de páginas da Tabela TACO. Alternativas comerciais (como o WebDiet) mostraram-se economicamente inviáveis para um projeto universitário e social, limitando o plano gratuito a apenas 5 interações.
 
-**A nossa solução:** Criar um ambiente digital de custo zero para a universidade[cite: 12, 14], que possibilita aos acadêmicos de Nutrição:
+**A nossa solução:** Criar um ambiente digital de custo zero para a universidade, que possibilita aos acadêmicos de Nutrição:
 1. **Triplicar a capacidade de atendimento** à população de baixa renda.
-2. **Reduzir o tempo operacional (Time-on-Task)** através da automação de cálculos[cite: 13].
-3. **Entregar prescrições profissionais** e padronizadas em PDF, aumentando a adesão dos pacientes ao tratamento[cite: 12, 13].
+2. **Reduzir o tempo operacional (Time-on-Task)** através da automação de cálculos.
+3. **Entregar prescrições profissionais** e padronizadas em PDF, aumentando a adesão dos pacientes ao tratamento.
 
 ---
 
 ## ✨ Funcionalidades Principais (MVP)
 
 *   **Cadastro e Anamnese (CRUD):** Gestão centralizada de pacientes, histórico clínico, alergias e hábitos.
-*   **Avaliação Antropométrica:** Cálculo instantâneo e automático de IMC e Taxa Metabólica Basal (TMB)[cite: 14].
-*   **Motor de Prescrição Dietética (TACO):** Banco de dados integrado com a Tabela Brasileira de Composição de Alimentos (TACO), calculando macronutrientes proporcionalmente à gramatura informada[cite: 14].
-*   **Exportação em PDF:** Geração dinâmica de planos alimentares em documento padronizado pronto para impressão ou envio digital[cite: 14].
-*   **Dashboard e Acessibilidade:** Painel interativo com métricas de pacientes[cite: 14] e suporte nativo a **Dark Mode** (salvo no `localStorage`).
-*   **Segurança (Auth JWT):** Proteção de rotas sensíveis e senhas criptografadas (bcrypt), com sistema de redefinição via e-mail[cite: 14, 16].
+*   **Avaliação Antropométrica:** Cálculo instantâneo e automático de IMC e Taxa Metabólica Basal (TMB).
+*   **Motor de Prescrição Dietética (TACO):** Banco de dados integrado com a Tabela Brasileira de Composição de Alimentos (TACO), calculando macronutrientes proporcionalmente à gramatura informada.
+*   **Exportação em PDF:** Geração dinâmica de planos alimentares em documento padronizado pronto para impressão ou envio digital.
+*   **Dashboard e Acessibilidade:** Painel interativo com métricas de pacientes e suporte nativo a **Dark Mode** (salvo no `localStorage`).
+*   **Segurança (Auth JWT):** Proteção de rotas sensíveis e senhas criptografadas (bcrypt), com sistema de redefinição via e-mail.
 
 ---
 
@@ -38,22 +38,22 @@ Antes do NutriSocial, o atendimento filantrópico sofria com gargalos operaciona
 O projeto foi construído sob uma **arquitetura de 3 camadas (Three-tier)** focada em performance e custo zero (PaaS):
 
 *   **Front-End (Apresentação):** HTML5, CSS3, JavaScript Vanilla, Bootstrap 5.3.
-    *   *Hospedagem:* Vercel[cite: 15].
+    *   *Hospedagem:* Vercel.
     *   *Roteamento:* Sistema inteligente via `config.js` que direciona a API para `localhost` no ambiente de desenvolvimento ou para a nuvem em produção.
 *   **Back-End (Aplicação):** Python 3+, FastAPI, Pydantic, SQLAlchemy.
-    *   *Hospedagem:* Render[cite: 15].
-*   **Banco de Dados (Persistência):** PostgreSQL relacional (Normalizado em 3FN)[cite: 15].
-    *   *Hospedagem:* Neon.tech[cite: 15].
+    *   *Hospedagem:* Render.
+*   **Banco de Dados (Persistência):** PostgreSQL relacional (Normalizado em 3FN).
+    *   *Hospedagem:* Neon.tech
 
 ---
 
 ## ⚙️ Metodologia e Versionamento
 
 O fluxo de trabalho alia as melhores práticas da Engenharia de Software:
-*   **Metodologia Ágil:** Desenvolvimento baseado no ciclo *Build-Measure-Learn* (Lean Startup) e priorização de escopo pelo método MoSCoW[cite: 13].
+*   **Metodologia Ágil:** Desenvolvimento baseado no ciclo *Build-Measure-Learn* (Lean Startup) e priorização de escopo pelo método MoSCoW.
 *   **Gestão de Projetos:** Utilização do framework **FlowED** (Nível 2) para planejamento e homologação.
 *   **Versionamento:** Adoção do fluxo **Dec-B (Branches Desacopladas)**, isolando o desenvolvimento local e ferramentas de automação na branch `test`, para garantir que a branch `main` de produção receba apenas código limpo, semântico e funcional.
-*   **DevOps (CI/CD):** Pipeline de entrega contínua vinculado ao GitHub, publicando atualizações na Vercel e no Render automaticamente a cada *merge* na branch principal[cite: 15, 16].
+*   **DevOps (CI/CD):** Pipeline de entrega contínua vinculado ao GitHub, publicando atualizações na Vercel e no Render automaticamente a cada *merge* na branch principal.
 
 ---
 
