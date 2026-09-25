@@ -1,3 +1,64 @@
+# 🥗 NutriSocial (NTeM)
+**Plataforma Web de Gestão Nutricional para Atendimento Social**
+
+![Status](https://img.shields.io/badge/Status-Em_Homologação-success)
+![Version](https://img.shields.io/badge/Version-0.2.0-blue)
+![Python](https://img.shields.io/badge/Python-3%2B-yellow)
+![FastAPI](https://img.shields.io/badge/FastAPI-Framework-009688)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952b3)
+
+O **NutriSocial** é uma plataforma de gestão clínica e prescrição dietética desenvolvida para centralizar e automatizar o atendimento nutricional filantrópico. O sistema foi concebido no âmbito do **Projeto de Integração Escola Comunidade (PIESC)**, voltado para as necessidades operacionais dos acadêmicos e formandos de Nutrição da **UNINGÁ**.
+
+---
+
+## 🎯 Objetivo e Contexto Social
+
+Antes do NutriSocial, o atendimento filantrópico sofria com gargalos operacionais: o uso de Formulários do Google dispersos, cálculos manuais de metabolismo e consultas morosas a PDFs de centenas de páginas da Tabela TACO[cite: 12]. Alternativas comerciais (como o WebDiet) mostraram-se economicamente inviáveis para um projeto universitário e social, limitando o plano gratuito a apenas 5 interações[cite: 12].
+
+**A nossa solução:** Criar um ambiente digital de custo zero para a universidade[cite: 12, 14], que possibilita aos acadêmicos de Nutrição:
+1. **Triplicar a capacidade de atendimento** à população de baixa renda.
+2. **Reduzir o tempo operacional (Time-on-Task)** através da automação de cálculos[cite: 13].
+3. **Entregar prescrições profissionais** e padronizadas em PDF, aumentando a adesão dos pacientes ao tratamento[cite: 12, 13].
+
+---
+
+## ✨ Funcionalidades Principais (MVP)
+
+*   **Cadastro e Anamnese (CRUD):** Gestão centralizada de pacientes, histórico clínico, alergias e hábitos.
+*   **Avaliação Antropométrica:** Cálculo instantâneo e automático de IMC e Taxa Metabólica Basal (TMB)[cite: 14].
+*   **Motor de Prescrição Dietética (TACO):** Banco de dados integrado com a Tabela Brasileira de Composição de Alimentos (TACO), calculando macronutrientes proporcionalmente à gramatura informada[cite: 14].
+*   **Exportação em PDF:** Geração dinâmica de planos alimentares em documento padronizado pronto para impressão ou envio digital[cite: 14].
+*   **Dashboard e Acessibilidade:** Painel interativo com métricas de pacientes[cite: 14] e suporte nativo a **Dark Mode** (salvo no `localStorage`).
+*   **Segurança (Auth JWT):** Proteção de rotas sensíveis e senhas criptografadas (bcrypt), com sistema de redefinição via e-mail[cite: 14, 16].
+
+---
+
+## 🛠 Arquitetura e Stack Tecnológica
+
+O projeto foi construído sob uma **arquitetura de 3 camadas (Three-tier)** focada em performance e custo zero (PaaS):
+
+*   **Front-End (Apresentação):** HTML5, CSS3, JavaScript Vanilla, Bootstrap 5.3.
+    *   *Hospedagem:* Vercel[cite: 15].
+    *   *Roteamento:* Sistema inteligente via `config.js` que direciona a API para `localhost` no ambiente de desenvolvimento ou para a nuvem em produção.
+*   **Back-End (Aplicação):** Python 3+, FastAPI, Pydantic, SQLAlchemy.
+    *   *Hospedagem:* Render[cite: 15].
+*   **Banco de Dados (Persistência):** PostgreSQL relacional (Normalizado em 3FN)[cite: 15].
+    *   *Hospedagem:* Neon.tech[cite: 15].
+
+---
+
+## ⚙️ Metodologia e Versionamento
+
+O fluxo de trabalho alia as melhores práticas da Engenharia de Software:
+*   **Metodologia Ágil:** Desenvolvimento baseado no ciclo *Build-Measure-Learn* (Lean Startup) e priorização de escopo pelo método MoSCoW[cite: 13].
+*   **Gestão de Projetos:** Utilização do framework **FlowED** (Nível 2) para planejamento e homologação.
+*   **Versionamento:** Adoção do fluxo **Dec-B (Branches Desacopladas)**, isolando o desenvolvimento local e ferramentas de automação na branch `test`, para garantir que a branch `main` de produção receba apenas código limpo, semântico e funcional.
+*   **DevOps (CI/CD):** Pipeline de entrega contínua vinculado ao GitHub, publicando atualizações na Vercel e no Render automaticamente a cada *merge* na branch principal[cite: 15, 16].
+
+---
+
+
+
 # 🛠 NutriSocial — Ambiente Local
 
 Guia único e direto para clonar, configurar e rodar o projeto localmente.
