@@ -31,7 +31,10 @@ if not DATABASE_URL:
         "→ Produção: configure no painel do Render (Environment > Add Environment Variable)."
     )
 
-engine = create_engine(DATABASE_URL)
+# pool_pre_ping testa a conexão antes de usá-la e pool_recycle a renova a cada 5 min:
+# o Neon (plano gratuito) encerra conexões ociosas, o que causava
+# "SSL connection has been closed unexpectedly" e erro 500 na primeira requisição.
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=300)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

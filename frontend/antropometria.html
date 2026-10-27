@@ -355,7 +355,11 @@
             if (e.tipo === 'timeout') return 'O servidor demorou para responder. Aguarde alguns segundos e tente novamente.';
             if (e.tipo === 'rede') return 'Sem conexão com o servidor. Verifique sua internet — os dados preenchidos continuam na tela.';
             if (e.status === 403) return 'Você não tem permissão para realizar esta ação.';
-            if (e.status === 404) return 'Paciente não encontrado. Ele pode ter sido removido.';
+            if (e.status === 404) {
+                return e.detail === 'Paciente não encontrado'
+                    ? 'Paciente não encontrado. Ele pode ter sido removido.'
+                    : 'Este recurso não está disponível no servidor (a versão do servidor pode estar desatualizada).';
+            }
             if (e.status === 422) return 'Confira os campos destacados e tente novamente.';
             if (e.status === 502 || e.status === 503 || e.status === 504) return 'O servidor está iniciando ou indisponível. Aguarde alguns segundos e tente novamente.';
             if (typeof e.detail === 'string' && e.status < 500) return e.detail;
