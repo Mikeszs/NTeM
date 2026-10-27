@@ -1,20 +1,30 @@
 import os
 import json
+import logging
 import secrets
 import hashlib
 import httpx
-from datetime import datetime, timedelta
-from typing import List
+from datetime import date, datetime, timedelta
+from typing import List, Literal, Optional
 
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Query, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from database import engine, Base, SessionLocal, Paciente, AlimentoTACO, Refeicao, ItemRefeicao, Usuario
+import antropometria
+from database import (
+    engine, Base, SessionLocal, Paciente, AlimentoTACO, Refeicao, ItemRefeicao, Usuario,
+    AvaliacaoAntropometrica,
+)
+
+logger = logging.getLogger("nutrisocial")
 
 # =============================================================================
 # INICIALIZAÇÃO
@@ -26,6 +36,18 @@ app = FastAPI(
     title="NutriSocial API",
     description="API para gestão nutricional e clínica",
 )
+
+@app.exception_handler(RequestValidationError)
+async def tratar_erro_de_validacao(request: Request, exc: RequestValidationError):
+    """
+    Mantém o formato padrão do FastAPI (lista em 'detail' com loc/msg/type), mas
+    NÃO devolve o valor recebido ('input') nem 'ctx'. Motivos: (1) o eco do valor
+    do cliente é desnecessário e pode refletir dados sensíveis; (2) valores como
+    NaN/Infinity não são JSON válido e derrubavam a resposta com erro 500.
+    """
+    erros = [{"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": erros})
+
 
 # =============================================================================
 # CORS
@@ -196,6 +218,80 @@ class PacienteUpdate(BaseModel):
     quadril:  float = 0.0
     abdomen:  float = 0.0
 
+# --- Antropometria -----------------------------------------------------------
+# Limites fisiológicos amplos: barram erro de digitação (ex.: 1750 em vez de 175)
+# e valores absurdos sem impedir casos clínicos reais. Campos desconhecidos são
+# rejeitados (extra="forbid"), então o cliente não consegue gravar lixo no JSON.
+
+def _dobra() -> Optional[float]:
+    return Field(None, gt=0, le=100, description="Dobra cutânea em mm")
+
+def _circ() -> Optional[float]:
+    return Field(None, gt=0, le=250, description="Circunferência em cm")
+
+
+class DobrasEntrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tricipital:    Optional[float] = _dobra()
+    bicipital:     Optional[float] = _dobra()
+    abdominal:     Optional[float] = _dobra()
+    subescapular:  Optional[float] = _dobra()
+    axilar_media:  Optional[float] = _dobra()
+    coxa:          Optional[float] = _dobra()
+    toracica:      Optional[float] = _dobra()
+    suprailiaca:   Optional[float] = _dobra()
+    panturrilha:   Optional[float] = _dobra()
+    supraespinhal: Optional[float] = _dobra()
+
+
+class CircunferenciasEntrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    pescoco:         Optional[float] = _circ()
+    torax:           Optional[float] = _circ()
+    ombro:           Optional[float] = _circ()
+    cintura:         Optional[float] = _circ()
+    quadril:         Optional[float] = _circ()
+    abdomen:         Optional[float] = _circ()
+    braco_relaxado:  Optional[float] = _circ()
+    braco_contraido: Optional[float] = _circ()
+    antebraco:       Optional[float] = _circ()
+    coxa_proximal:   Optional[float] = _circ()
+    coxa_distal:     Optional[float] = _circ()
+    panturrilha:     Optional[float] = _circ()
+
+
+class AvaliacaoEntrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    sexo:            Literal["M", "F"]
+    formula:         Literal[
+        "pollock3", "pollock7", "petroski", "guedes", "durnin", "faulkner",
+        "rfm", "navy", "nenhuma",
+    ] = "nenhuma"
+    idade:           Optional[int]   = Field(None, ge=1, le=120)
+    peso:            Optional[float] = Field(None, gt=0, le=500)
+    altura:          Optional[float] = Field(None, ge=30, le=272)
+    dobras:          DobrasEntrada = Field(default_factory=DobrasEntrada)
+    circunferencias: CircunferenciasEntrada = Field(default_factory=CircunferenciasEntrada)
+    data_avaliacao:  Optional[date] = None
+
+    @field_validator("data_avaliacao")
+    @classmethod
+    def _data_nao_futura(cls, v: Optional[date]):
+        # +1 dia de tolerância: servidor em UTC, usuário no Brasil (UTC-3).
+        if v is not None and v > date.today() + timedelta(days=1):
+            raise ValueError("A data da avaliação não pode ser futura.")
+        return v
+
+    @model_validator(mode="after")
+    def _exige_alguma_medida(self):
+        medidas = [self.peso, self.altura,
+                   *self.dobras.model_dump().values(),
+                   *self.circunferencias.model_dump().values()]
+        if all(m is None for m in medidas):
+            raise ValueError("Informe ao menos uma medida para calcular ou salvar.")
+        return self
+
+
 class ItemDietaCreate(BaseModel):
     id:        int
     quantidade: float
@@ -243,6 +339,13 @@ def obter_usuario_atual(
     usuario = db.query(Usuario).filter(Usuario.email == email).first()
     if usuario is None:
         raise excecao
+    return usuario
+
+
+def obter_profissional(usuario: Usuario = Depends(obter_usuario_atual)) -> Usuario:
+    """Igual a obter_usuario_atual, mas responde 403 se o usuário não for profissional."""
+    if usuario.role != "profissional":
+        raise HTTPException(status_code=403, detail="Acesso restrito a profissionais.")
     return usuario
 
 
@@ -481,6 +584,164 @@ async def atualizar_paciente(
     db.commit()
     db.refresh(paciente)
     return {"status": "sucesso", "mensagem": "Prontuário atualizado.", "dados": paciente}
+
+
+# --- ANTROPOMETRIA ---
+# Todo cálculo acontece aqui (módulo antropometria.py). O frontend só envia
+# medidas e exibe o retorno; nada que vem pronto do cliente é gravado.
+
+@app.get("/antropometria/formulas")
+async def listar_formulas_antropometria(
+    sexo: Literal["M", "F"] = "F",
+    _: Usuario = Depends(obter_profissional),
+):
+    """Catálogo de fórmulas e, para cada uma, as medidas exigidas para o sexo informado."""
+    return antropometria.catalogo(sexo)
+
+
+@app.post("/antropometria/calcular")
+async def calcular_antropometria(
+    dados: AvaliacaoEntrada,
+    _: Usuario = Depends(obter_profissional),
+):
+    """Cálculo sem persistência — usado para o retorno em tempo real da tela."""
+    return _calcular_entrada(dados)
+
+
+def _calcular_entrada(dados: AvaliacaoEntrada) -> dict:
+    return antropometria.calcular(
+        sexo=dados.sexo,
+        formula=dados.formula,
+        idade=dados.idade,
+        peso=dados.peso,
+        altura=dados.altura,
+        dobras=dados.dobras.model_dump(),
+        circunferencias=dados.circunferencias.model_dump(),
+    )
+
+
+def _sem_vazios(medidas: dict) -> dict:
+    return {k: v for k, v in medidas.items() if v is not None}
+
+
+def _avaliacao_para_dict(a: AvaliacaoAntropometrica) -> dict:
+    return {
+        "id":              a.id,
+        "paciente_id":     a.paciente_id,
+        "data_avaliacao":  a.data_avaliacao.isoformat(),
+        "criado_em":       a.criado_em.isoformat(),
+        "sexo":            a.sexo,
+        "idade":           a.idade,
+        "peso":            a.peso,
+        "altura":          a.altura,
+        "formula":         a.formula,
+        "dobras":          a.dobras,
+        "circunferencias": a.circunferencias,
+        "resultado":       a.resultado,
+    }
+
+
+# Janela em que um reenvio idêntico (duplo clique, retry de rede) é tratado
+# como a MESMA avaliação em vez de gerar um registro duplicado no histórico.
+JANELA_IDEMPOTENCIA_SEGUNDOS = 30
+
+
+@app.post("/pacientes/{paciente_id}/avaliacoes", status_code=201)
+async def registrar_avaliacao(
+    paciente_id: int,
+    dados: AvaliacaoEntrada,
+    response: Response,
+    db: Session = Depends(get_db),
+    profissional: Usuario = Depends(obter_profissional),
+):
+    """
+    Calcula e grava uma nova avaliação no histórico do paciente.
+    Também atualiza as medidas atuais do prontuário (peso, altura, idade, sexo,
+    cintura, quadril, abdômen) quando informadas — o mesmo comportamento da tela
+    anterior —, na MESMA transação: ou grava tudo, ou nada.
+    """
+    paciente = db.query(Paciente).filter(Paciente.id == paciente_id).first()
+    if not paciente:
+        raise HTTPException(status_code=404, detail="Paciente não encontrado")
+
+    dobras = _sem_vazios(dados.dobras.model_dump())
+    circ   = _sem_vazios(dados.circunferencias.model_dump())
+    data_avaliacao = dados.data_avaliacao or datetime.utcnow().date()
+
+    # Idempotência: mesmo profissional, mesmo paciente, mesmos dados, em poucos segundos.
+    recente = (
+        db.query(AvaliacaoAntropometrica)
+        .filter(
+            AvaliacaoAntropometrica.paciente_id == paciente_id,
+            AvaliacaoAntropometrica.profissional_id == profissional.id,
+            AvaliacaoAntropometrica.criado_em >= datetime.utcnow() - timedelta(seconds=JANELA_IDEMPOTENCIA_SEGUNDOS),
+        )
+        .order_by(AvaliacaoAntropometrica.criado_em.desc())
+        .first()
+    )
+    if recente and (
+        recente.sexo == dados.sexo and recente.idade == dados.idade
+        and recente.peso == dados.peso and recente.altura == dados.altura
+        and recente.formula == dados.formula and recente.data_avaliacao == data_avaliacao
+        and recente.dobras == dobras and recente.circunferencias == circ
+    ):
+        response.status_code = 200
+        return _avaliacao_para_dict(recente)
+
+    resultado = _calcular_entrada(dados)
+    avaliacao = AvaliacaoAntropometrica(
+        paciente_id=paciente_id, profissional_id=profissional.id,
+        data_avaliacao=data_avaliacao,
+        sexo=dados.sexo, idade=dados.idade, peso=dados.peso, altura=dados.altura,
+        formula=dados.formula, dobras=dobras, circunferencias=circ, resultado=resultado,
+    )
+
+    # Mantém o prontuário atual (usado por dieta.html etc.) sincronizado, sem
+    # sobrescrever com vazio quando uma medida não foi informada.
+    paciente.sexo = dados.sexo
+    for campo, valor in (
+        ("idade", dados.idade), ("peso", dados.peso), ("altura", dados.altura),
+        ("cintura", circ.get("cintura")), ("quadril", circ.get("quadril")),
+        ("abdomen", circ.get("abdomen")),
+    ):
+        if valor is not None:
+            setattr(paciente, campo, valor)
+
+    try:
+        db.add(avaliacao)
+        db.commit()
+        db.refresh(avaliacao)
+    except SQLAlchemyError:
+        db.rollback()
+        logger.exception("Falha ao gravar avaliação antropométrica (paciente_id=%s)", paciente_id)
+        raise HTTPException(
+            status_code=500,
+            detail="Não foi possível salvar a avaliação agora. Tente novamente em instantes.",
+        )
+
+    return _avaliacao_para_dict(avaliacao)
+
+
+@app.get("/pacientes/{paciente_id}/avaliacoes")
+async def listar_avaliacoes(
+    paciente_id: int,
+    limite: int = Query(10, ge=1, le=50),
+    deslocamento: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(obter_profissional),
+):
+    """Histórico de avaliações do paciente, da mais recente para a mais antiga (paginado)."""
+    if not db.query(Paciente.id).filter(Paciente.id == paciente_id).first():
+        raise HTTPException(status_code=404, detail="Paciente não encontrado")
+
+    consulta = db.query(AvaliacaoAntropometrica).filter(AvaliacaoAntropometrica.paciente_id == paciente_id)
+    total = consulta.count()
+    itens = (
+        consulta
+        .order_by(AvaliacaoAntropometrica.data_avaliacao.desc(), AvaliacaoAntropometrica.id.desc())
+        .offset(deslocamento).limit(limite).all()
+    )
+    return {"total": total, "itens": [_avaliacao_para_dict(a) for a in itens]}
 
 
 # --- ALIMENTOS (TACO) ---
