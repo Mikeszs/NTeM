@@ -1,7 +1,8 @@
 import os
+from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, DateTime, Date, JSON
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # =============================================================================
@@ -57,6 +58,38 @@ class Paciente(Base):
     cintura  = Column(Float,   default=0.0)
     quadril  = Column(Float,   default=0.0)
     abdomen  = Column(Float,   default=0.0)
+
+
+class AvaliacaoAntropometrica(Base):
+    """
+    Histórico de avaliações antropométricas de um paciente.
+
+    Cada salvamento gera UM registro novo e imutável (não há edição/remoção):
+    guardamos as medidas informadas e o SNAPSHOT do resultado calculado na
+    época. Assim, se uma fórmula for corrigida no futuro, as avaliações antigas
+    continuam mostrando exatamente o que foi entregue ao paciente, e a evolução
+    (peso, % de gordura) pode ser comparada entre datas.
+
+    Dobras e circunferências ficam em JSON porque o conjunto de medidas varia
+    por fórmula; a validação dos campos e limites é feita na API (Pydantic).
+    """
+    __tablename__ = "avaliacoes_antropometricas"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    paciente_id     = Column(Integer, ForeignKey("pacientes.id"), nullable=False, index=True)
+    profissional_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    data_avaliacao  = Column(Date, nullable=False)
+    criado_em       = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    sexo     = Column(String(1), nullable=False)
+    idade    = Column(Integer)
+    peso     = Column(Float)
+    altura   = Column(Float)
+    formula  = Column(String, nullable=False)
+
+    dobras          = Column(JSON, nullable=False, default=dict)
+    circunferencias = Column(JSON, nullable=False, default=dict)
+    resultado       = Column(JSON, nullable=False)
 
 
 class AlimentoTACO(Base):
