@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Documentação técnica, manual do usuário e avaliação de qualidade da plataforma NT&M (NutriSocial).">
+<meta name="theme-color" content="#123b32">
+<title>NT&M — Documentação</title>
+<style>
+:root { color-scheme: light; --bg:#f4f7f5; --paper:#fff; --ink:#20312c; --muted:#62736c; --green:#16745b; --line:#dce7e1; --code:#edf3ef; }
+* { box-sizing:border-box; } html { scroll-behavior:smooth; }
+body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.72 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+header { background:linear-gradient(135deg,#123b32,#16745b); color:white; padding:42px 22px 34px; }
+.hero { max-width:960px; margin:auto; } .eyebrow { text-transform:uppercase; letter-spacing:.14em; font-size:.76rem; opacity:.8; }
+header h1 { margin:10px 0; font-size:clamp(2rem,5vw,3.2rem); line-height:1.12; } header p { margin:8px 0 0; max-width:720px; opacity:.9; }
+main { max-width:960px; margin:28px auto 60px; padding:38px clamp(20px,5vw,58px); background:var(--paper); border:1px solid var(--line); border-radius:18px; box-shadow:0 10px 35px rgba(25,55,43,.06); }
+h1,h2,h3,h4 { color:#174d3d; line-height:1.3; } main h1 { font-size:2rem; } main h2 { margin-top:2.4em; padding-bottom:.45em; border-bottom:1px solid var(--line); } main h3 { margin-top:1.8em; }
+p,li { overflow-wrap:anywhere; } a { color:var(--green); }
+table { width:100%; border-collapse:collapse; display:block; overflow-x:auto; margin:1.2em 0 1.8em; font-size:.94rem; }
+th,td { border:1px solid var(--line); padding:10px 12px; text-align:left; vertical-align:top; min-width:120px; } th { background:#eaf3ee; color:#174d3d; } tr:nth-child(even) td { background:#fafcfb; }
+pre { overflow-x:auto; padding:18px; border-radius:10px; background:#17251f; color:#e8f3ed; line-height:1.55; } code { background:var(--code); padding:.12em .35em; border-radius:4px; font-size:.9em; } pre code { background:transparent; padding:0; }
+blockquote { border-left:4px solid var(--green); margin:1.4em 0; padding:.3em 1em; color:var(--muted); background:#f6faf7; } hr { border:0; border-top:1px solid var(--line); margin:2em 0; }
+footer { text-align:center; color:var(--muted); font-size:.85rem; padding:0 20px 35px; }
+@media(max-width:640px) { header {padding:30px 20px 26px;} main {margin:14px 10px 32px;padding:24px 18px;border-radius:12px;} body {font-size:15px;} th,td {padding:8px;} }
+@media print { body {background:white;} main {max-width:none;margin:0;padding:0;border:0;box-shadow:none;} header {background:white;color:black;padding:0 0 20px;} a {color:inherit;text-decoration:none;} }
+</style>
+</head>
+<body>
+<header><div class="hero"><div class="eyebrow">NutriSocial · NT&M</div><h1>Documentação da plataforma</h1><p>Documentação de código, manual do usuário, arquitetura e avaliação da qualidade de software.</p></div></header>
+<main>
+<h1>NT&amp;M — Qualidade de Software: Documentação de Código, Documentação de Usuário e Arquitetura</h1>
+<p>Oct 22, 2026 · @Miqueias</p>
+<p>A plataforma NT&amp;M (NutriSocial) reúne documentação de código, documentação de usuário e decisões de qualidade que já existem no repositório, mas estavam dispersas; este documento as organiza e aponta o que falta.</p>
+<h2>1. Introdução e escopo</h2>
+<p>O estudo aplica os três núcleos definidos em sala ao software desenvolvido por Miqueias Souza da Silva no Projeto Trainee (ADS) e no PIESC, em parceria com a Entidade Social Nutrição Acessível. A NT&amp;M permite que estudantes e formandos de Nutrição atendam pacientes de baixa renda: cadastro, antropometria (IMC e TMB), montagem de dieta com a Tabela TACO e geração de PDF.</p>
+<p>A análise parte do código-fonte do repositório (<code>Mikeszs/NTeM</code>, ~3.900 linhas): back-end em FastAPI com SQLAlchemy e PostgreSQL, e front-end em HTML, CSS e JavaScript com Bootstrap 5.3. Onde o código e o README divergem, vale o código, e a divergência é registrada na seção 5.</p>
+<table>
+<thead>
+<tr>
+  <th>Núcleo</th>
+  <th>Pergunta que responde</th>
+  <th>Seção</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Documentação de software</td>
+  <td>Como outro desenvolvedor entende, executa e evolui o código?</td>
+  <td>2</td>
+</tr>
+<tr>
+  <td>Documentação de usuário</td>
+  <td>Como o estudante usa o sistema sem ajuda do desenvolvedor?</td>
+  <td>3</td>
+</tr>
+<tr>
+  <td>Qualidade de software</td>
+  <td>O sistema é seguro, manutenível e adaptável?</td>
+  <td>4 e 5</td>
+</tr>
+</tbody>
+</table>
+<h2>2. Núcleo 1 — Documentação de software (código)</h2>
+<p>O código já é bem comentado: os comentários explicam o porquê das decisões (por exemplo, por que o token fica em <code>sessionStorage</code>), mas faltava um mapa que ligasse arquivos, rotas e dados. Esta seção é esse mapa.</p>
+<h3>2.1 Estrutura do repositório</h3>
+<table>
+<thead>
+<tr>
+  <th>Caminho</th>
+  <th>Responsabilidade</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>app/main.py</code></td>
+  <td>API FastAPI: CORS, autenticação JWT, schemas Pydantic e todas as rotas (649 linhas)</td>
+</tr>
+<tr>
+  <td><code>app/database.py</code></td>
+  <td>Engine SQLAlchemy, sessão e os 5 modelos (lê <code>DATABASE_URL</code> do ambiente)</td>
+</tr>
+<tr>
+  <td><code>app/taco.json</code></td>
+  <td>Base de alimentos TACO (~282 itens) importada pela rota <code>/importar-taco-completa/</code></td>
+</tr>
+<tr>
+  <td><code>frontend/config.js</code></td>
+  <td>Detecta ambiente e define <code>API_BASE</code> (local ou Render)</td>
+</tr>
+<tr>
+  <td><code>frontend/auth.js</code></td>
+  <td>Sessão: salvar, ler, limpar e proteger rota (<code>auth.exigir</code>)</td>
+</tr>
+<tr>
+  <td><code>frontend/theme.js</code></td>
+  <td>Alternância de tema claro/escuro</td>
+</tr>
+<tr>
+  <td><code>frontend/style.css</code></td>
+  <td>Tokens de cor, sidebar, cards e modo escuro</td>
+</tr>
+<tr>
+  <td><code>frontend/*.html</code></td>
+  <td>Telas: login, cadastro, redefinir-senha, dashboard (<code>index</code>), antropometria, dieta, perfil</td>
+</tr>
+<tr>
+  <td><code>keep-alive.yml</code></td>
+  <td>Workflow do GitHub Actions que acorda o Render a cada 14 minutos</td>
+</tr>
+</tbody>
+</table>
+<h3>2.2 Como executar localmente</h3>
+<p>O README descreve uma pasta <code>backend/</code> que não existe; o caminho correto é <code>app/</code>.</p>
+<pre><code class="language-bash">git clone https://github.com/Mikeszs/NTeM.git &amp;&amp; cd NTeM
+pip install -r requirements.txt
+cd app
+# .env na raiz do projeto (um nível acima de app/) com as variáveis abaixo
+uvicorn main:app --reload        # API em http://localhost:8000 (docs em /docs)
+# front-end: abrir frontend/ com Live Server (porta 5500)
+</code></pre>
+<p>O <code>uvicorn</code> deve rodar dentro de <code>app/</code>, porque <code>main.py</code> importa <code>database</code> diretamente e abre <code>taco.json</code> por caminho relativo.</p>
+<table>
+<thead>
+<tr>
+  <th>Variável</th>
+  <th>Obrigatória</th>
+  <th>Uso</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>DATABASE_URL</code></td>
+  <td>Sim</td>
+  <td>String de conexão PostgreSQL; sem ela a API não sobe</td>
+</tr>
+<tr>
+  <td><code>SECRET_KEY</code></td>
+  <td>Sim</td>
+  <td>Chave de assinatura do JWT (o README cita <code>JWT_SECRET</code>, mas o código lê <code>SECRET_KEY</code>)</td>
+</tr>
+<tr>
+  <td><code>ACCESS_TOKEN_EXPIRE_MINUTES</code></td>
+  <td>Não</td>
+  <td>Validade do token; padrão 60</td>
+</tr>
+<tr>
+  <td><code>RESEND_API_KEY</code></td>
+  <td>Não</td>
+  <td>Sem ela o e-mail de redefinição não é enviado</td>
+</tr>
+<tr>
+  <td><code>RESEND_FROM_EMAIL</code></td>
+  <td>Não</td>
+  <td>Remetente do e-mail</td>
+</tr>
+<tr>
+  <td><code>FRONTEND_URL</code></td>
+  <td>Não</td>
+  <td>Base do link de redefinição; padrão <code>https://ntem.vercel.app</code></td>
+</tr>
+</tbody>
+</table>
+<h3>2.3 Referência da API</h3>
+<p>O FastAPI gera automaticamente a documentação interativa (OpenAPI) em <code>/docs</code>; a tabela abaixo é o resumo legível dela.</p>
+<table>
+<thead>
+<tr>
+  <th>Método e rota</th>
+  <th>Acesso</th>
+  <th>Função</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>POST /auth/cadastro</code></td>
+  <td>Público</td>
+  <td>Cria usuário (nome, e-mail, senha, role)</td>
+</tr>
+<tr>
+  <td><code>POST /auth/login</code></td>
+  <td>Público</td>
+  <td>Retorna JWT, role e nome</td>
+</tr>
+<tr>
+  <td><code>POST /auth/esqueci-senha</code></td>
+  <td>Público</td>
+  <td>Envia link de redefinição; resposta sempre genérica</td>
+</tr>
+<tr>
+  <td><code>POST /auth/redefinir-senha</code></td>
+  <td>Token do e-mail</td>
+  <td>Define nova senha (mín. 6 caracteres) e invalida o token</td>
+</tr>
+<tr>
+  <td><code>GET /perfil/me</code>, <code>PUT /perfil/me</code></td>
+  <td>Autenticado</td>
+  <td>Lê e edita nome e e-mail próprios</td>
+</tr>
+<tr>
+  <td><code>PUT /perfil/senha</code></td>
+  <td>Autenticado</td>
+  <td>Troca senha exigindo a senha atual</td>
+</tr>
+<tr>
+  <td><code>GET /pacientes/</code>, <code>GET /pacientes/{id}</code></td>
+  <td>Autenticado</td>
+  <td>Lista e detalha pacientes</td>
+</tr>
+<tr>
+  <td><code>POST /pacientes/</code>, <code>PUT /pacientes/{id}</code></td>
+  <td>Profissional</td>
+  <td>Cadastra e atualiza paciente (inclui medidas)</td>
+</tr>
+<tr>
+  <td><code>GET /alimentos/</code></td>
+  <td>Autenticado</td>
+  <td>Lista alimentos TACO</td>
+</tr>
+<tr>
+  <td><code>POST /importar-taco-completa/</code></td>
+  <td>Profissional</td>
+  <td>Carga inicial do <code>taco.json</code> (aborta se já houver dados)</td>
+</tr>
+<tr>
+  <td><code>POST /dietas/</code></td>
+  <td>Profissional</td>
+  <td>Substitui o plano alimentar do paciente</td>
+</tr>
+<tr>
+  <td><code>GET /dietas/{paciente_id}</code></td>
+  <td>Autenticado</td>
+  <td>Retorna refeições e itens com valores base por 100 g</td>
+</tr>
+<tr>
+  <td><code>GET /dashboard/resumo</code></td>
+  <td>Autenticado</td>
+  <td>Totais de pacientes, com e sem dieta, e distribuição por objetivo</td>
+</tr>
+</tbody>
+</table>
+<h3>2.4 Modelo de dados</h3>
+<table>
+<thead>
+<tr>
+  <th>Tabela</th>
+  <th>Campos principais</th>
+  <th>Relação</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>usuarios</code></td>
+  <td>id, nome, email (único), senha_hash, role, reset_token_hash, reset_token_expira</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>pacientes</code></td>
+  <td>id, nome, email, telefone, objetivo, sexo, idade, peso, altura, cintura, quadril, abdomen</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>alimentos_taco</code></td>
+  <td>id, nome, kcal, carb, prot, gord, fibra, sodio</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>refeicoes</code></td>
+  <td>id, paciente_id, nome, horario</td>
+  <td>N:1 com <code>pacientes</code></td>
+</tr>
+<tr>
+  <td><code>itens_refeicao</code></td>
+  <td>id, refeicao_id, alimento_id, quantidade</td>
+  <td>N:1 com <code>refeicoes</code> e <code>alimentos_taco</code></td>
+</tr>
+</tbody>
+</table>
+<h3>2.4.1 Regras de cálculo documentadas no código</h3>
+<p>IMC = peso ÷ (altura em metros)², classificado em abaixo do peso (&lt; 18,5), normal (18,5 a 24,9), sobrepeso (25,0 a 29,9) e obesidade (≥ 30). A TMB usa Harris-Benedict, com peso em kg, altura em cm e idade em anos:</p>
+<pre><code class="language-latex">TMB_{M} = 66{,}5 + 13{,}75\,P + 5{,}003\,A - 6{,}75\,I \qquad TMB_{F} = 655{,}1 + 9{,}563\,P + 1{,}85\,A - 4{,}676\,I
+</code></pre>
+<p>O cálculo existe duplicado em <code>antropometria.html</code> e <code>dieta.html</code>, o que é um risco de manutenção (seção 5).</p>
+<h3>2.5 Convenções e padrão de documentação</h3>
+<ul>
+<li>Cabeçalhos de bloco em maiúsculas (<code># === ROTAS ===</code>) separam as seções de <code>main.py</code>.</li>
+<li>Docstrings em português explicam a intenção, não a mecânica (ex.: a rota <code>/auth/esqueci-senha</code> documenta a proteção contra enumeração de contas).</li>
+<li>Mensagens de erro de login são genéricas de propósito, para não revelar se o e-mail existe.</li>
+<li>Padrão proposto para novas rotas: docstring com propósito, perfil de acesso exigido, corpo esperado e códigos de erro possíveis (400, 401, 403, 404).</li>
+</ul>
+<h2>3. Núcleo 2 — Documentação de usuário</h2>
+<p>O manual abaixo é escrito para o estudante ou formando de Nutrição, sem termos técnicos, e segue a ordem real do atendimento: entrar, cadastrar, medir, montar a dieta e entregar o PDF.</p>
+<h3>3.1 Antes de começar</h3>
+<ul>
+<li>Acesse <code>https://ntem.vercel.app</code> em um navegador atualizado (Chrome, Edge ou Firefox).</li>
+<li>No primeiro acesso do dia, o sistema pode levar até um minuto para responder; aguarde, pois isso é normal.</li>
+<li>As contas de acesso são criadas pela equipe do projeto; a tela de login não tem opção de criar conta.</li>
+<li>O menu lateral leva a: Dashboard, Cadastro &amp; Anamnese, Antropometria, Plano Alimentar e Meu Perfil. O botão de lua/sol alterna entre tema claro e escuro.</li>
+</ul>
+<h3>3.2 Passo a passo do atendimento</h3>
+<ol>
+<li><strong>Entrar:</strong> informe e-mail e senha e clique em &quot;Entrar no Sistema&quot;. Você chega ao Dashboard, que mostra total de pacientes, quantos já têm dieta e a distribuição por objetivo.</li>
+<li><strong>Cadastrar o paciente:</strong> em &quot;Cadastro &amp; Anamnese&quot;, preencha ao menos o nome (campo obrigatório) e o objetivo principal; e-mail e telefone são opcionais. Clique em salvar e aguarde a mensagem de confirmação com o número do paciente.</li>
+<li><strong>Registrar medidas:</strong> em &quot;Antropometria&quot;, escolha o paciente, informe sexo, idade, peso (kg), altura (cm) e as circunferências de cintura, quadril e abdômen. O IMC, a classificação e a TMB aparecem na hora, enquanto você digita. Clique em &quot;Salvar Medidas no Prontuário&quot;.</li>
+<li><strong>Montar a dieta:</strong> em &quot;Plano Alimentar&quot;, clique em &quot;Selecionar / Trocar Paciente&quot;, escolha o paciente e confirme em &quot;Confirmar e Carregar&quot;. Use &quot;Nova Refeição&quot;, dê nome e horário, busque o alimento da Tabela TACO e informe a quantidade em gramas. Calorias, carboidratos, proteínas, gorduras, fibras e sódio são recalculados a cada item, e o painel do dia compara o total com a TMB do paciente.</li>
+<li><strong>Guardar o plano:</strong> clique em &quot;Guardar Plano Alimentar&quot;. Atenção: o novo plano substitui o anterior do mesmo paciente.</li>
+<li><strong>Gerar o PDF:</strong> clique em &quot;Gerar Plano em PDF&quot;. O plano abre em uma nova aba e a janela de impressão aparece sozinha: escolha &quot;Salvar como PDF&quot; ou imprima. Se nada abrir, permita pop-ups para o site.</li>
+<li><strong>Sair:</strong> use &quot;Sair do Sistema&quot; no menu lateral. Ao fechar a aba, a sessão também termina.</li>
+</ol>
+<h3>3.3 Conta e senha</h3>
+<table>
+<thead>
+<tr>
+  <th>Situação</th>
+  <th>O que fazer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Esqueci minha senha</td>
+  <td>Na tela de login, clique em &quot;Esqueci minha senha&quot;, informe o e-mail e abra o link recebido (vale por 30 minutos e funciona uma vez)</td>
+</tr>
+<tr>
+  <td>Quero trocar a senha</td>
+  <td>Em &quot;Meu Perfil&quot;, informe a senha atual e a nova (mínimo de 6 caracteres)</td>
+</tr>
+<tr>
+  <td>Mudei de e-mail</td>
+  <td>Em &quot;Meu Perfil&quot;, altere nome e e-mail e salve</td>
+</tr>
+<tr>
+  <td>Não recebi o e-mail</td>
+  <td>Confira o spam; por segurança, o sistema responde igual mesmo se o e-mail não estiver cadastrado</td>
+</tr>
+</tbody>
+</table>
+<h3>3.4 Mensagens do sistema e o que significam</h3>
+<table>
+<thead>
+<tr>
+  <th>Mensagem</th>
+  <th>Causa e solução</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>&quot;E-mail ou senha incorretos&quot;</td>
+  <td>Confira os dados; o sistema não informa qual está errado, de propósito</td>
+</tr>
+<tr>
+  <td>&quot;Sua sessão expirou. Por favor, faça login novamente.&quot;</td>
+  <td>A sessão dura 60 minutos; entre de novo e refaça a ação</td>
+</tr>
+<tr>
+  <td>&quot;Selecione um paciente primeiro.&quot;</td>
+  <td>Escolha o paciente antes de editar a dieta</td>
+</tr>
+<tr>
+  <td>&quot;Preencha o alimento e a quantidade.&quot;</td>
+  <td>Selecione um alimento e informe gramas maiores que zero</td>
+</tr>
+<tr>
+  <td>&quot;Selecione um paciente para gerar o documento.&quot;</td>
+  <td>Carregue um paciente antes de gerar o PDF</td>
+</tr>
+<tr>
+  <td>&quot;Este paciente ainda não possui refeições cadastradas no plano.&quot;</td>
+  <td>Adicione ao menos uma refeição e guarde o plano</td>
+</tr>
+<tr>
+  <td>&quot;Erro de conexão com o Back-End&quot;</td>
+  <td>Verifique a internet e tente novamente; se persistir, aguarde o servidor acordar</td>
+</tr>
+<tr>
+  <td>&quot;Link inválido ou expirado&quot;</td>
+  <td>Solicite um novo link em &quot;Esqueci minha senha&quot;</td>
+</tr>
+</tbody>
+</table>
+<h3>3.5 Perguntas frequentes</h3>
+<p><strong>O sistema substitui o nutricionista?</strong> Não. É uma ferramenta de apoio ao atendimento e não oferece consulta clínica.</p>
+<p><strong>Perdi o que digitei na dieta.</strong> Refeições só ficam salvas depois de &quot;Guardar Plano Alimentar&quot;; ao recarregar a página sem guardar, o rascunho se perde.</p>
+<p><strong>Os campos de anamnese (alergias, intestino, sono) ficam salvos?</strong> Hoje, não: a tela os exibe, mas apenas nome, objetivo, e-mail e telefone são enviados ao servidor. Registre esses dados fora do sistema até a correção (seção 5).</p>
+<h2>4. Núcleo 3 — Qualidade de software (arquitetura e skins)</h2>
+<p>A NT&amp;M tem uma base arquitetural sólida para o seu porte (front e back separados, segurança por padrão, tema configurável por tokens), mas a qualidade ainda não é verificável porque não há testes automatizados nem migrações versionadas.</p>
+<h3>4.1 Arquitetura</h3>
+<p>O sistema segue o modelo cliente-servidor em três camadas físicas: o navegador (HTML, CSS e JavaScript no Vercel) conversa por HTTPS e JSON com a API FastAPI (Render), que acessa o PostgreSQL (Neon) por ORM e envia e-mail pelo Resend. Cada camada é implantada de forma independente, e o front-end descobre o endereço da API sozinho em <code>config.js</code>.</p>
+<p>Dentro do back-end, a separação é parcial: <code>database.py</code> isola os modelos e a conexão, mas <code>main.py</code> concentra schemas, autenticação, regras de negócio e rotas no mesmo arquivo. A regra &quot;somente profissionais alteram dados clínicos&quot; é verificada no servidor, não apenas escondida na interface, o que é a decisão de segurança mais importante do projeto.</p>
+<p>[embedded content: arquitetura da NT&amp;M · 3 camadas e 2 serviços de apoio]</p>
+<p>O destaque está na API: é ela que valida o token e o perfil, de modo que nada depende do que o navegador mostra ou esconde.</p>
+<h3>4.2 Skins e temas (claro e escuro)</h3>
+<p>O tema é feito com tokens de design: <code>style.css</code> define variáveis semânticas (<code>--bg-app</code>, <code>--bg-surface</code>, <code>--text-primary</code>, <code>--border-color</code>, <code>--input-bg</code>) e o bloco <code>[data-theme=&quot;dark&quot;]</code> apenas redefine esses valores, mantendo as cores de marca (verde-menta <code>#20c997</code>). Os componentes do style.css usam o token em vez da cor fixa, e por isso a troca é instantânea.</p>
+<ul>
+<li><code>theme.js</code> grava os atributos <code>data-theme</code> e <code>data-bs-theme</code> ao mesmo tempo; o segundo ativa o modo escuro nativo do Bootstrap 5.3 e corrigiu títulos e labels que ficavam pretos.</li>
+<li>A escolha fica em <code>localStorage</code> (chave <code>_ns_tema</code>); sem escolha prévia, vale a preferência do sistema operacional (<code>prefers-color-scheme</code>).</li>
+<li>O script é carregado no <code>&lt;head&gt;</code> para evitar o &quot;flash&quot; de tela clara antes de escurecer.</li>
+<li>Para criar uma nova skin (por exemplo, alto contraste), basta um novo bloco <code>[data-theme=&quot;alto-contraste&quot;]</code> com os mesmos tokens e um valor a mais em <code>theme.js</code>.</li>
+<li>Limite atual: classes fixas do Bootstrap, como <code>bg-white</code> e <code>text-dark</code>, presentes em algumas telas, ignoram os tokens e devem ser trocadas por classes que os usem.</li>
+</ul>
+<h3>4.3 Atributos de qualidade (ISO/IEC 25010)</h3>
+<table>
+<thead>
+<tr>
+  <th>Característica</th>
+  <th>Evidência no código</th>
+  <th>Situação</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Adequação funcional</td>
+  <td>RF01 a RF07 presentes; IMC, TMB e totais calculados em tempo real</td>
+  <td>Parcial: anamnese não é gravada</td>
+</tr>
+<tr>
+  <td>Eficiência de desempenho</td>
+  <td>Índices em paciente_id e refeicao_id; <code>keep-alive.yml</code> contra cold start</td>
+  <td>Parcial: listas sem paginação e consultas repetidas em <code>/dietas/{id}</code></td>
+</tr>
+<tr>
+  <td>Compatibilidade</td>
+  <td>CORS restrito a três origens; integração com Resend</td>
+  <td>Atende</td>
+</tr>
+<tr>
+  <td>Usabilidade</td>
+  <td>Spinner no botão, mensagens claras, tema escuro, <code>aria-label</code> no menu e no tema</td>
+  <td>Parcial: feedback via <code>alert()</code> e validação sem destaque no campo</td>
+</tr>
+<tr>
+  <td>Confiabilidade</td>
+  <td>Falhas de e-mail não derrubam a rota; erros de rede tratados nas telas</td>
+  <td>Lacuna: sem testes; <code>/dietas/</code> não é atômica</td>
+</tr>
+<tr>
+  <td>Segurança</td>
+  <td>Senhas com bcrypt, JWT com expiração, token de reset guardado como hash SHA-256 com validade de 30 minutos, segredos só em ambiente</td>
+  <td>Parcial: ver riscos na seção 5</td>
+</tr>
+<tr>
+  <td>Manutenibilidade</td>
+  <td>Comentários explicam decisões; front e back separados</td>
+  <td>Parcial: <code>main.py</code> monolítico, cálculo de TMB duplicado, sem migrações</td>
+</tr>
+<tr>
+  <td>Portabilidade</td>
+  <td>Deploy em Render e Vercel; configuração por variáveis de ambiente</td>
+  <td>Atende</td>
+</tr>
+</tbody>
+</table>
+<h2>5. Avaliação crítica e plano de melhoria</h2>
+<p>A leitura do código encontrou dois riscos de segurança altos e várias divergências entre o README e o sistema; nenhum impede o uso acadêmico, mas todos devem ser corrigidos antes de uso com dados reais de pacientes.</p>
+<h3>5.1 Pontos fortes</h3>
+<ul>
+<li>Autorização por perfil no servidor, e não só na interface.</li>
+<li>Segredos fora do código, com falha explícita na inicialização se faltarem.</li>
+<li>Recuperação de senha com token aleatório guardado como hash, expiração e uso único.</li>
+<li>Mensagens genéricas em login e esqueci-senha, evitando enumeração de contas.</li>
+<li>Tema por tokens, com experiência de tema escuro consistente.</li>
+</ul>
+<h3>5.2 Lacunas encontradas e correção proposta</h3>
+<table>
+<thead>
+<tr>
+  <th>#</th>
+  <th>Lacuna</th>
+  <th>Onde</th>
+  <th>Risco</th>
+  <th>Correção proposta</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>1</td>
+  <td>Qualquer pessoa pode criar conta com <code>role</code> &quot;profissional&quot;</td>
+  <td><code>POST /auth/cadastro</code></td>
+  <td>Alto</td>
+  <td>Ignorar <code>role</code> no cadastro público (padrão &quot;paciente&quot;) e criar profissionais por rota restrita ou convite</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td>Nome e objetivo do paciente entram em <code>innerHTML</code> e <code>document.write</code> sem escape (XSS armazenado)</td>
+  <td><code>dieta.html</code>, <code>antropometria.html</code>, <code>index.html</code></td>
+  <td>Alto</td>
+  <td>Usar <code>textContent</code> ou uma função de escape; validar e limitar texto no servidor</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td>Qualquer usuário autenticado, inclusive &quot;paciente&quot;, lista todos os pacientes</td>
+  <td><code>GET /pacientes/</code>, <code>/dietas/{id}</code>, <code>/dashboard/resumo</code></td>
+  <td>Alto para dados de saúde (LGPD)</td>
+  <td>Exigir perfil profissional nas leituras e vincular paciente ao profissional que o cadastrou</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td>Anamnese exibida na tela, mas não enviada nem gravada</td>
+  <td><code>cadastro.html</code>, modelo <code>Paciente</code></td>
+  <td>Médio</td>
+  <td>Criar campos ou tabela de anamnese e enviá-los no <code>POST</code>; até lá, corrigir o README (RF02)</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>POST /dietas/</code> apaga o plano antigo e confirma antes de inserir o novo; não valida paciente nem alimento</td>
+  <td><code>salvar_dieta</code></td>
+  <td>Médio</td>
+  <td>Uma única transação com <code>rollback</code> em falha e validação das chaves</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td>Sem limite de tentativas em login e redefinição</td>
+  <td>rotas <code>/auth/*</code></td>
+  <td>Médio</td>
+  <td>Rate limiting (por exemplo, <code>slowapi</code>) com limites mais rígidos nessas rotas</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td>Sem validação de entrada além do tipo: e-mail como texto livre, idade, peso e altura sem faixa, senha mínima só na redefinição</td>
+  <td>schemas Pydantic</td>
+  <td>Médio</td>
+  <td><code>EmailStr</code>, <code>Field(gt=0, le=...)</code> e mínimo de senha também no cadastro</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td>Sem paginação; <code>GET /dietas/{id}</code> faz uma consulta por item</td>
+  <td>listagens e <code>obter_dieta_paciente</code></td>
+  <td>Baixo hoje</td>
+  <td><code>limit</code> e <code>offset</code>; carregar itens e alimentos com <code>join</code></td>
+</tr>
+<tr>
+  <td>9</td>
+  <td>Sem testes automatizados e sem migrações versionadas</td>
+  <td>repositório</td>
+  <td>Médio</td>
+  <td><code>pytest</code> com <code>TestClient</code> para auth e permissões; Alembic</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td>Cálculo de IMC e TMB duplicado em duas telas</td>
+  <td><code>antropometria.html</code>, <code>dieta.html</code></td>
+  <td>Baixo</td>
+  <td>Extrair para um <code>calculos.js</code> compartilhado</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td>Erros registrados com <code>print</code>; feedback ao usuário com <code>alert()</code></td>
+  <td><code>main.py</code>, telas</td>
+  <td>Baixo</td>
+  <td>Módulo <code>logging</code>; avisos na própria tela</td>
+</tr>
+</tbody>
+</table>
+<h3>5.3 Divergências entre README e código</h3>
+<table>
+<thead>
+<tr>
+  <th>README diz</th>
+  <th>O código mostra</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Pasta <code>backend/</code></td>
+  <td>Pasta <code>app/</code></td>
+</tr>
+<tr>
+  <td>Variável <code>JWT_SECRET</code></td>
+  <td>Variável <code>SECRET_KEY</code></td>
+</tr>
+<tr>
+  <td>PDF gerado com html2pdf.js</td>
+  <td>A tela abre uma nova aba com layout de impressão e chama <code>window.print()</code></td>
+</tr>
+<tr>
+  <td>Arquivos <code>dieta.js</code> e <code>auth.js</code></td>
+  <td>O script da dieta fica dentro de <code>dieta.html</code>; existe <code>auth.js</code></td>
+</tr>
+<tr>
+  <td><code>.``gitignore ignora *.db e __pycache__</code></td>
+  <td><code>app/nutrisocial.db</code> e arquivos <code>__pycache__</code> estão versionados</td>
+</tr>
+<tr>
+  <td>RF02 (anamnese) entregue</td>
+  <td>Campos de anamnese não são gravados</td>
+</tr>
+</tbody>
+</table>
+<h3>5.4 Ordem de execução sugerida</h3>
+<ol>
+<li>Corrigir as lacunas 1, 2 e 3, que protegem os dados de pacientes.</li>
+<li>Corrigir as lacunas 5 e 4, que evitam perda e inconsistência de dados.</li>
+<li>Adicionar testes de permissão (lacuna 9) para que as correções 1 e 3 não regridam.</li>
+<li>Atualizar o README e remover do repositório o banco local e os caches.</li>
+<li>Tratar as demais lacunas na migração planejada para React, TypeScript e Vite.</li>
+</ol>
+<h2>6. Referências</h2>
+<p>Código analisado: repositório <code>Mikeszs/NTeM</code>, versão clonada em 22/10/2026 (README v1.0, 3º bimestre). As referências conceituais abaixo estão citadas pelo nome; confira edição e página antes de entregar.</p>
+<ul>
+<li>ISO/IEC 25010:2011 — Modelos de qualidade de sistemas e de software.</li>
+<li>OWASP Top 10 — A01 Broken Access Control e A03 Injection (XSS).</li>
+<li>Lei nº 13.709/2018 (LGPD) — tratamento de dados pessoais sensíveis de saúde.</li>
+<li>Documentação oficial do FastAPI (OpenAPI e dependências de segurança) e do Bootstrap 5.3 (modos de cor).</li>
+<li>NEPA/UNICAMP — Tabela Brasileira de Composição de Alimentos (TACO).</li>
+</ul>
+
+</main>
+<footer>NT&M — NutriSocial · Documentação do projeto</footer>
+</body>
+</html>
