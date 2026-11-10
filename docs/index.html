@@ -449,7 +449,7 @@ uvicorn main:app --reload        # API em http://localhost:8000 (docs em /docs)
 </tbody>
 </table>
 <h2>5. Avaliação crítica e plano de melhoria</h2>
-<p>A leitura do código encontrou dois riscos de segurança altos e várias divergências entre o README e o sistema; nenhum impede o uso acadêmico, mas todos devem ser corrigidos antes de uso com dados reais de pacientes.</p>
+<p>A leitura do código encontrou lacunas de segurança e várias divergências entre o README e o sistema. Esta página é uma cópia de 05/11/2026 e é anterior à refatoração da antropometria; em caso de divergência, valem os arquivos de <code>docs/</code> em Markdown.</p>
 <h3>5.1 Pontos fortes</h3>
 <ul>
 <li>Autorização por perfil no servidor, e não só na interface.</li>
@@ -458,97 +458,8 @@ uvicorn main:app --reload        # API em http://localhost:8000 (docs em /docs)
 <li>Mensagens genéricas em login e esqueci-senha, evitando enumeração de contas.</li>
 <li>Tema por tokens, com experiência de tema escuro consistente.</li>
 </ul>
-<h3>5.2 Lacunas encontradas e correção proposta</h3>
-<table>
-<thead>
-<tr>
-  <th>#</th>
-  <th>Lacuna</th>
-  <th>Onde</th>
-  <th>Risco</th>
-  <th>Correção proposta</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-  <td>1</td>
-  <td>Qualquer pessoa pode criar conta com <code>role</code> &quot;profissional&quot;</td>
-  <td><code>POST /auth/cadastro</code></td>
-  <td>Alto</td>
-  <td>Ignorar <code>role</code> no cadastro público (padrão &quot;paciente&quot;) e criar profissionais por rota restrita ou convite</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td>Nome e objetivo do paciente entram em <code>innerHTML</code> e <code>document.write</code> sem escape (XSS armazenado)</td>
-  <td><code>dieta.html</code>, <code>antropometria.html</code>, <code>index.html</code></td>
-  <td>Alto</td>
-  <td>Usar <code>textContent</code> ou uma função de escape; validar e limitar texto no servidor</td>
-</tr>
-<tr>
-  <td>3</td>
-  <td>Qualquer usuário autenticado, inclusive &quot;paciente&quot;, lista todos os pacientes</td>
-  <td><code>GET /pacientes/</code>, <code>/dietas/{id}</code>, <code>/dashboard/resumo</code></td>
-  <td>Alto para dados de saúde (LGPD)</td>
-  <td>Exigir perfil profissional nas leituras e vincular paciente ao profissional que o cadastrou</td>
-</tr>
-<tr>
-  <td>4</td>
-  <td>Anamnese exibida na tela, mas não enviada nem gravada</td>
-  <td><code>cadastro.html</code>, modelo <code>Paciente</code></td>
-  <td>Médio</td>
-  <td>Criar campos ou tabela de anamnese e enviá-los no <code>POST</code>; até lá, corrigir o README (RF02)</td>
-</tr>
-<tr>
-  <td>5</td>
-  <td><code>POST /dietas/</code> apaga o plano antigo e confirma antes de inserir o novo; não valida paciente nem alimento</td>
-  <td><code>salvar_dieta</code></td>
-  <td>Médio</td>
-  <td>Uma única transação com <code>rollback</code> em falha e validação das chaves</td>
-</tr>
-<tr>
-  <td>6</td>
-  <td>Sem limite de tentativas em login e redefinição</td>
-  <td>rotas <code>/auth/*</code></td>
-  <td>Médio</td>
-  <td>Rate limiting (por exemplo, <code>slowapi</code>) com limites mais rígidos nessas rotas</td>
-</tr>
-<tr>
-  <td>7</td>
-  <td>Sem validação de entrada além do tipo: e-mail como texto livre, idade, peso e altura sem faixa, senha mínima só na redefinição</td>
-  <td>schemas Pydantic</td>
-  <td>Médio</td>
-  <td><code>EmailStr</code>, <code>Field(gt=0, le=...)</code> e mínimo de senha também no cadastro</td>
-</tr>
-<tr>
-  <td>8</td>
-  <td>Sem paginação; <code>GET /dietas/{id}</code> faz uma consulta por item</td>
-  <td>listagens e <code>obter_dieta_paciente</code></td>
-  <td>Baixo hoje</td>
-  <td><code>limit</code> e <code>offset</code>; carregar itens e alimentos com <code>join</code></td>
-</tr>
-<tr>
-  <td>9</td>
-  <td>Sem testes automatizados e sem migrações versionadas</td>
-  <td>repositório</td>
-  <td>Médio</td>
-  <td><code>pytest</code> com <code>TestClient</code> para auth e permissões; Alembic</td>
-</tr>
-<tr>
-  <td>10</td>
-  <td>Cálculo de IMC e TMB duplicado em duas telas</td>
-  <td><code>antropometria.html</code>, <code>dieta.html</code></td>
-  <td>Baixo</td>
-  <td>Extrair para um <code>calculos.js</code> compartilhado</td>
-</tr>
-<tr>
-  <td>11</td>
-  <td>Erros registrados com <code>print</code>; feedback ao usuário com <code>alert()</code></td>
-  <td><code>main.py</code>, telas</td>
-  <td>Baixo</td>
-  <td>Módulo <code>logging</code>; avisos na própria tela</td>
-</tr>
-</tbody>
-</table>
+<h3>5.2 Lacunas e plano de melhoria</h3>
+<p>O detalhamento das lacunas de segurança e do plano de correção foi retirado desta página pública e mantido em documento interno do projeto.</p>
 <h3>5.3 Divergências entre README e código</h3>
 <table>
 <thead>
@@ -584,14 +495,6 @@ uvicorn main:app --reload        # API em http://localhost:8000 (docs em /docs)
 </tr>
 </tbody>
 </table>
-<h3>5.4 Ordem de execução sugerida</h3>
-<ol>
-<li>Corrigir as lacunas 1, 2 e 3, que protegem os dados de pacientes.</li>
-<li>Corrigir as lacunas 5 e 4, que evitam perda e inconsistência de dados.</li>
-<li>Adicionar testes de permissão (lacuna 9) para que as correções 1 e 3 não regridam.</li>
-<li>Atualizar o README e remover do repositório o banco local e os caches.</li>
-<li>Tratar as demais lacunas na migração planejada para React, TypeScript e Vite.</li>
-</ol>
 <h2>6. Referências</h2>
 <p>Código analisado: repositório <code>Mikeszs/NTeM</code>, versão clonada em 22/10/2026 (README v1.0, 3º bimestre). As referências conceituais abaixo estão citadas pelo nome; confira edição e página antes de entregar.</p>
 <ul>
