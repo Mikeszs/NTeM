@@ -1,10 +1,10 @@
 # Manual do usuário
 
-Este manual ensina o estudante ou formando de Nutrição a atender um paciente no NTeM, do login à entrega do plano alimentar em PDF.
+Este manual ensina o acadêmico do curso de Nutrição da UNINGÁ a atender um paciente no NTeM, do login à entrega do plano alimentar em PDF.
 
 | Item | Informação |
 |---|---|
-| Quem usa | Estudantes e formandos de Nutrição que atendem pacientes na ES Nutrição Acessível |
+| Quem usa | Acadêmicos do curso de Nutrição da UNINGÁ (estudantes e formandos) que atendem pacientes |
 | Endereço | https://ntem.vercel.app, em navegador atualizado (Chrome, Edge ou Firefox), no computador |
 | Versão | `main` do repositório, conferida contra o código em 10/11/2026 |
 | Contas | Criadas pela equipe do projeto; a tela de login não tem opção de criar conta |
@@ -40,7 +40,7 @@ Os três procedimentos abaixo estão em rascunho até serem validados por quem o
 | Resultado esperado | Paciente com avaliação e plano alimentar salvos e PDF entregue |
 | Verificações | O número do paciente apareceu na confirmação; a avaliação aparece em "Avaliações anteriores"; apareceu "Plano Alimentar atualizado com sucesso!"; o PDF mostra todas as refeições |
 | Exceções | Sessão expirada: entre de novo e refaça o passo; servidor lento: aguarde até um minuto |
-| Escalonamento | Se o erro persistir, acione o responsável técnico do projeto (contato a definir pela ES) |
+| Escalonamento | Se o erro persistir, acione o responsável técnico do projeto (contato a definir) |
 | Riscos e ações irreversíveis | Guardar o plano substitui o anterior; avaliações salvas não podem ser editadas ou apagadas |
 
 ### POP-02 — Atualizar o plano alimentar

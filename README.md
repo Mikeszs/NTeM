@@ -1,6 +1,6 @@
 # NTeM — NutriSocial
 
-Plataforma web para estudantes e formandos de Nutrição gerenciarem pacientes e planos alimentares, desenvolvida como produto real do Projeto Trainee para ADS e do PIESC (Programa de Integração Escola Comunidade), em parceria com a Entidade Social **Nutrição Acessível**.
+Plataforma web para estudantes e formandos de Nutrição gerenciarem pacientes e planos alimentares, desenvolvida como produto real do Projeto Trainee para ADS e do PIESC (Programa de Integração Escola Comunidade), em parceria com os Acadêmicos do curso de  **Nutrição da UNINGÁ**.
 
 **Autor:** Miqueias Souza da Silva
 
@@ -12,7 +12,7 @@ Plataforma web para estudantes e formandos de Nutrição gerenciarem pacientes e
 
 O NTeM tem como objetivo permitir que estudantes de Nutrição realizem, de forma ágil e organizada, o atendimento de um paciente de baixa renda: cadastro, avaliação antropométrica com cálculos automáticos e montagem de um plano alimentar personalizado com base na Tabela TACO, gerando ao final um documento em PDF pronto para entrega ao paciente.
 
-O sistema resolve um problema real da ES Nutrição Acessível: a dificuldade de oferecer orientação nutricional organizada e gratuita, sem depender de cálculos manuais e planilhas soltas durante o atendimento.
+O sistema resolve um problema real dos acadêmicos de Nutrição: a dificuldade de oferecer orientação nutricional organizada, sem depender de cálculos manuais e planilhas soltas durante o atendimento.
 
 ---
 
