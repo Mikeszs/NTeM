@@ -9,8 +9,9 @@
 | [api.md](api.md) | Quem consome a API | Rotas, perfis de acesso, corpos e códigos de erro |
 | [arquitetura.md](arquitetura.md) | Quem precisa entender o conjunto | Camadas, estrutura de pastas, modelo de dados e decisões de projeto |
 | [antropometria-formulas.md](antropometria-formulas.md) | Nutricionistas e desenvolvedores | Fórmulas implementadas, unidades, referências e caso de conferência |
+| [qualidade-de-software.md](qualidade-de-software.md) | Avaliadores e mantenedores | Arquitetura, skins e atributos de qualidade (ISO/IEC 25010) |
 
-`index.html` é uma cópia de 05/11/2026 do documento do trabalho de Qualidade de Software. Ela é anterior à refatoração da antropometria e, nos pontos em que diverge destes arquivos, valem estes arquivos.
+`index.html` é o site público da documentação e é **gerado** a partir destes arquivos: depois de editar qualquer `.md`, rode `pip install markdown` e `python scripts/build_docs.py` e faça commit do `index.html`. Não edite o HTML à mão.
 
 ## Cartão de saúde da documentação
 
